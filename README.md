@@ -7,8 +7,11 @@ Solemne 1 - Infraestructura TI. Monitoreo de invernaderos y huertos con Raspberr
 - `device/`   Microservicios que corren en la Raspberry Pi (Docker Compose)
 - `web/`      Plataforma web y API (Vercel)
 - `firebase/` Reglas e indices de Firestore
-- `docs/`     Informe, presentacion y evidencia (capturas, mediciones de consumo)
-
+- 
 ## Integrantes
 
-- (completar)
+- Vanesa Lagos
+- Héctor Peña
+- Sebastián Hidalgo
+- Claudio Ojeda
+- Leonardo Burgos
