@@ -10,7 +10,7 @@ Solemne 1 - Infraestructura TI. Monitoreo de invernaderos y huertos con Raspberr
 
 ## Integrantes
 
-- Vanesa Lagos
+- Vanessa Lagos
 - Héctor Peña
 - Sebastián Hidalgo
 - Claudio Ojeda
