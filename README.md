@@ -9,7 +9,7 @@ Solemne 1 - Infraestructura TI. Monitoreo de invernaderos y huertos con Raspberr
 - `firebase/` Reglas e indices de Firestore
 
 ## Integrantes
-- Vanesa Lagos 
+- Vanessa Lagos 
 - Héctor Peña 
 - Sebastián Hidalgo 
 - Claudio Ojeda
