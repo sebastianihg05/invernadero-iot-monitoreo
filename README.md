@@ -1,6 +1,6 @@
 ﻿# Invernadero IoT
 
-Solemne 1 - Infraestructura TI. Monitoreo de invernaderos y huertos con Raspberry Pi 3, Docker, Cloud Firestore y plataforma web en Vercel.
+Solemne 1 - Infraestructura TI. Monitoreo de invernaderos y huertos con Raspberry Pi 4, Docker, Cloud Firestore y plataforma web en Vercel.
 
 ## Estructura
 
@@ -9,9 +9,8 @@ Solemne 1 - Infraestructura TI. Monitoreo de invernaderos y huertos con Raspberr
 - `firebase/` Reglas e indices de Firestore
 
 ## Integrantes
-
-- Vanessa Lagos
-- Héctor Peña
-- Sebastián Hidalgo
+- Vanessa Lagos 
+- Héctor Peña 
+- Sebastián Hidalgo 
 - Claudio Ojeda
-- Leonardo Burgos
+- Leonardo Burgos 
