@@ -102,22 +102,33 @@ def iniciar_sensor():
 # LECTURA DE DATOS
 # ==========================================
 
-def leer_sensor(sensor):
+def leer_sensor(sensor, intentos_maximos=3, espera_entre_intentos=2):
     if MODO_SIMULADO:
         import random
-
         temperatura = random.uniform(20, 30)
         humedad = random.uniform(40, 80)
+        return temperatura, humedad
 
-    else:
-        temperatura = sensor.temperature
-        humedad = sensor.humidity
+    for intento in range(1, intentos_maximos + 1):
+        try:
+            temperatura = sensor.temperature
+            humedad = sensor.humidity
 
-    if temperatura is None or humedad is None:
-        raise RuntimeError("Lectura incompleta del sensor")
+            if temperatura is not None and humedad is not None:
+                return temperatura, humedad
+                
+        except (RuntimeError, OSError) as error:
+            logger.warning(
+                "Intento %s/%s fallido al leer el sensor: %s", 
+                intento, intentos_maximos, error
+            )
+            
+            if intento < intentos_maximos:
+                time.sleep(espera_entre_intentos)
+            else:
+                raise RuntimeError("Fallaron todos los reintentos de lectura del sensor")
 
-    return temperatura, humedad
-      
+    raise RuntimeError("Lectura incompleta del sensor")
 
 
 # ==========================================
