@@ -1,50 +1,66 @@
 import { NextResponse } from "next/server";
+import { db } from "@/lib/firebaseAdmin";
 
+// POST /api/sensores
+// Recibe de la Raspberry Pi (servicio uploader) UN resumen por minuto y lo guarda en Firestore.
+// Header obligatorio:  Authorization: Bearer <DEVICE_SECRET_TOKEN>
 export async function POST(request) {
   try {
-    // 1. Leer el JSON que envía el microservicio de la Raspberry Pi
-    const body = await request.json();
-    const { deviceToken, sensores, timestamp } = body;
+    // 1. Validar el token del dispositivo.
+    //    No hay valor por defecto: si la variable no existe en Vercel, la ruta no acepta nada.
+    const tokenEsperado = process.env.DEVICE_SECRET_TOKEN;
 
-    // 2. Validar el token del dispositivo (Seguridad del proyecto)
-    // El token real debe estar guardado en las Variables de Entorno de Vercel
-    const tokenValido =
-      process.env.DEVICE_SECRET_TOKEN || "token_de_prueba_123";
-
-    if (deviceToken !== tokenValido) {
+    if (!tokenEsperado) {
+      console.error("Falta la variable DEVICE_SECRET_TOKEN");
       return NextResponse.json(
-        { error: "No autorizado: Token de dispositivo inválido" },
+        { error: "Servidor sin token configurado" },
+        { status: 500 },
+      );
+    }
+
+    const cabecera = request.headers.get("authorization") || "";
+
+    if (cabecera !== "Bearer " + tokenEsperado) {
+      return NextResponse.json(
+        { error: "No autorizado: token de dispositivo invalido" },
         { status: 401 },
       );
     }
 
-    // 3. Validar que lleguen los datos de los sensores
-    if (!sensores || sensores.length === 0) {
-      return NextResponse.json(
-        { error: "Faltan los datos de los sensores" },
-        { status: 400 },
-      );
+    // 2. Leer y validar el resumen que publica el data-processor
+    const resumen = await request.json();
+
+    if (!resumen || typeof resumen !== "object" || Array.isArray(resumen)) {
+      return NextResponse.json({ error: "JSON incorrecto" }, { status: 400 });
     }
 
-    // 4. AQUÍ SE CONECTARÁ FIRESTORE (lo que está haciendo tu compañero)
-    // Ejemplo de lo que irá aquí cuando tu compañero te pase la config:
-    /*
-      await db.collection('lecturas').add({
-        deviceToken,
-        sensores,
-        timestamp: timestamp || new Date().toISOString()
-      });
-    */
-    console.log(
-      "Datos recibidos exitosamente desde la Raspberry Pi:",
-      sensores,
-    );
+    const idResumen = resumen.id_resumen;
+    const deviceId = resumen.device_id;
 
-    // 5. Responder a la Raspberry Pi que todo salió bien
-    return NextResponse.json(
-      { success: true, message: "Datos recibidos y guardados correctamente" },
-      { status: 200 },
-    );
+    if (typeof idResumen !== "string" || idResumen.length < 1 || idResumen.length > 128) {
+      return NextResponse.json({ error: "id_resumen invalido" }, { status: 400 });
+    }
+
+    if (typeof deviceId !== "string" || deviceId.length < 1 || deviceId.length > 64) {
+      return NextResponse.json({ error: "device_id invalido" }, { status: 400 });
+    }
+
+    if (typeof resumen.timestamp !== "string") {
+      return NextResponse.json({ error: "Falta el timestamp" }, { status: 400 });
+    }
+
+    // 3. Guardar en Firestore: dispositivos/{device_id}/resumenes/{id_resumen}
+    //    Se usa set() con id_resumen como id del documento: si la Raspberry reenvia
+    //    el mismo resumen despues de un corte, se sobrescribe y NO se duplica.
+    await db()
+      .collection("dispositivos")
+      .doc(deviceId)
+      .collection("resumenes")
+      .doc(idResumen)
+      .set(resumen);
+
+    // 4. Responder a la Raspberry Pi solo cuando ya quedo guardado
+    return NextResponse.json({ success: true, id_resumen: idResumen }, { status: 200 });
   } catch (error) {
     console.error("Error en la API de sensores:", error);
     return NextResponse.json(
