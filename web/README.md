@@ -20,6 +20,21 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Conectar con Firestore
+
+El dashboard consulta `GET /api/sensores?range=1h`, `GET /api/sensores?range=24h` o `GET /api/sensores?range=7d`. El historial y los conteos de alertas se limitan al período elegido (hasta 60, 1440 o 10080 resúmenes). La semana queda seleccionada por defecto y requiere actualización manual para evitar lecturas repetidas de muchos documentos; los períodos más breves se actualizan automáticamente cada minuto. Para habilitarlo localmente, crea `.env.local` en esta carpeta con las credenciales de una cuenta de servicio de Firebase:
+
+```env
+FIREBASE_PROJECT_ID=tu-proyecto
+FIREBASE_CLIENT_EMAIL=tu-cuenta-de-servicio
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+DEVICE_ID=invernadero-01
+```
+
+`DEVICE_ID` debe coincidir con el identificador que usa el dispositivo. Reinicia el servidor después de crear o cambiar el archivo. No subas `.env.local` ni las credenciales a GitHub.
+
+La lectura del dashboard es pública y devuelve resúmenes de temperatura, humedad y estado del dispositivo, conteos agregados y hasta ocho alertas recientes con sus motivos para el período elegido. No publica el resto de los campos del evento. El `POST /api/sensores` que utiliza el dispositivo sigue protegido con `DEVICE_SECRET_TOKEN`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
