@@ -15,7 +15,7 @@ import paho.mqtt.client as mqtt
 
 DEVICE_ID = os.getenv("DEVICE_ID", "invernadero-01")
 GPIO_DHT = int(os.getenv("GPIO_DHT", "4"))
-INTERVALO = 10
+INTERVALO = 60
 
 MQTT_HOST = os.getenv("MQTT_HOST", "mosquitto")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
