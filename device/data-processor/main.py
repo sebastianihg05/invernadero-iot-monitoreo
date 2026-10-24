@@ -7,8 +7,62 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
-
+import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
+from pathlib import Path
+
+# ==========================================
+# CONFIGURACION DEL BUZZER Y GPIO
+# ==========================================
+BUZZER_PIN = int(os.getenv("BUZZER_PIN", "17"))
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(BUZZER_PIN, GPIO.OUT)
+pwm = GPIO.PWM(BUZZER_PIN, 440)
+
+NOTAS = {
+    'DO5': 523.25, 'RE4': 293.66, 'MI4': 329.63, 'FA4': 349.23,
+    'SOL4': 392.00, 'LA4': 440.00, 'DO6': 1046.50, 'SI5': 987.77,
+    'LA5': 880, 'SOL5': 783.99, 'FA#5': 739.99, 'RE5': 587.33,
+    'FA5': 698.46, 'MI5': 659.25, 'RE#5': 622.25, 'SI4': 493.88
+}
+
+melodia = [
+    ('DO6', 1.0), ('DO6', 0.18), ('SI5', 0.18), ('LA5', 0.18),
+    ('SOL5', 0.18), ('FA#5', 0.35), ('RE5', 0.35), ('FA#5', 0.35),
+    ('DO6', 0.35), ('SI5', 0.35), ('SOL5', 0.35), ('FA#5', 1.0),
+    ('FA5', 1.0), ('MI5', 1.0), ('RE#5', 0.35), ('RE5', 0.35),
+    ('SI4', 0.35), ('DO5', 0.18), ('DO6', 0.18), ('DO5', 0.18),
+    ('DO6', 0.18), ('DO5', 0.18), ('DO6', 0.18), ('DO5', 0.35),
+    ('DO6', 0.18), ('SI5', 0.18), ('LA5', 0.18), ('SOL5', 0.18),
+    ('FA#5', 0.35), ('RE5', 0.35), ('FA#5', 0.35), ('SI5', 0.35),
+    ('LA5', 0.35), ('FA#5', 0.35), ('SOL5', 1.0)
+]
+
+alarma_lock = threading.Lock()
+
+def reproducir_melodia():
+    if not alarma_lock.acquire(blocking=False):
+        return
+    try:
+        pwm.start(10)
+        for nota, duracion in melodia:
+            if detener.is_set():
+                break
+            pwm.ChangeFrequency(NOTAS[nota])
+            time.sleep(duracion)
+    except Exception as error:
+        logger.error("Error al reproducir la melodía: %s", error)
+    finally:
+        try:
+            pwm.stop()
+        except Exception:
+            pass
+        alarma_lock.release()
+
+def disparar_alarma_async():
+    hilo = threading.Thread(target=reproducir_melodia, daemon=True)
+    hilo.start()
 
 # ==========================================
 # CONFIGURACION
@@ -188,6 +242,8 @@ def procesar_lectura(datos):
 
         if motivos:
             periodo["alertas"] += 1
+
+            disparar_alarma_async()
 
             periodo["eventos"].append({
                 "id_lectura": str(
@@ -421,6 +477,8 @@ def main():
     try:
         while not detener.wait(INTERVALO_RESUMEN):
 
+            Path("/tmp/latido").touch()
+
             with bloqueo:
                 datos_periodo = periodo
                 periodo = nuevo_periodo()
@@ -435,6 +493,13 @@ def main():
     finally:
         cliente.disconnect()
         cliente.loop_stop()
+
+        try:
+            pwm.stop()
+            GPIO.cleanup()
+        except Exception:
+            pass
+
         logger.info("Microservicio finalizado")
 
 
