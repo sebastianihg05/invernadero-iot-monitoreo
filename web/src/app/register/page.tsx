@@ -2,9 +2,20 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { auth, db } from '../../lib/firebaseClient';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import styles from './register.module.css';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  
+  // Estados para mostrar/ocultar contraseñas
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     nombre: '',
     correo: '',
@@ -24,6 +35,11 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.correo.endsWith('@unab.cl') && !formData.correo.endsWith('@uandresbello.edu')) {
+      alert("El correo debe ser institucional (@unab.cl o @uandresbello.edu)");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       alert("Las contraseñas no coinciden");
       return;
@@ -34,16 +50,32 @@ export default function RegisterPage() {
       return;
     }
 
-    // PLACEHOLDER PARA FIREBASE
-    console.log("Iniciando registro con:", formData.correo);
+    setLoading(true);
+
     try {
-      // 1. const userCredential = await createUserWithEmailAndPassword(auth, formData.correo, formData.password);
-      // 2. const user = userCredential.user;
-      // 3. await setDoc(doc(db, "usuarios", user.uid), { nombre: formData.nombre, rol: "usuario" });
-      console.log("Usuario registrado exitosamente en Auth y Firestore");
-      // window.location.href = "/"; // Redirigir al login tras éxito
-    } catch (error) {
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.correo, formData.password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "usuarios", user.uid), {
+        nombre: formData.nombre,
+        correo: formData.correo,
+        rol: "estudiante",
+        fechaRegistro: serverTimestamp()
+      });
+
+      alert("Registro exitoso. Redirigiendo al inicio de sesión...");
+      router.push('/');
+    } catch (error: any) {
       console.error("Error en el registro:", error);
+      if (error.code === 'auth/email-already-in-use') {
+        alert("Este correo ya está registrado.");
+      } else if (error.code === 'auth/weak-password') {
+        alert("La contraseña debe tener al menos 6 caracteres.");
+      } else {
+        alert("Ocurrió un error al registrar la cuenta.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -79,6 +111,7 @@ export default function RegisterPage() {
                 value={formData.nombre}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
           </div>
@@ -94,6 +127,7 @@ export default function RegisterPage() {
                 value={formData.correo}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
             <span className={styles.helperText}>Debe ser un correo @uandresbello.edu o @unab.cl</span>
@@ -104,14 +138,21 @@ export default function RegisterPage() {
             <div className={styles.inputWrapper}>
               <img src="/candado.png" alt="Candado" className={styles.iconImage} />
               <input 
-                type="password" 
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Crea una contraseña" 
                 value={formData.password}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
-              <img src="/ojo.png" alt="Ver" className={styles.iconImage} style={{ cursor: 'pointer' }} />
+              <img 
+                src="/ojo.png" 
+                alt="Ver" 
+                className={styles.iconImage} 
+                style={{ cursor: 'pointer', opacity: showPassword ? 1 : 0.5 }} 
+                onClick={() => setShowPassword(!showPassword)}
+              />
             </div>
           </div>
 
@@ -120,14 +161,21 @@ export default function RegisterPage() {
             <div className={styles.inputWrapper}>
               <img src="/candado.png" alt="Candado" className={styles.iconImage} />
               <input 
-                type="password" 
+                type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
                 placeholder="Confirma tu contraseña" 
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
-              <img src="/ojo.png" alt="Ver" className={styles.iconImage} style={{ cursor: 'pointer' }} />
+              <img 
+                src="/ojo.png" 
+                alt="Ver" 
+                className={styles.iconImage} 
+                style={{ cursor: 'pointer', opacity: showConfirmPassword ? 1 : 0.5 }}
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              />
             </div>
           </div>
 
@@ -138,14 +186,16 @@ export default function RegisterPage() {
                 name="aceptaTerminos"
                 checked={formData.aceptaTerminos}
                 onChange={handleChange}
+                disabled={loading}
               />
               <span className={styles.checkmark}></span>
               <span>Acepto los <Link href="#" className={styles.link}>términos y condiciones</Link></span>
             </label>
           </div>
 
-          <button type="submit" className={styles.primaryButton}>
-            <img src="/usuario.png" alt="Registrar" className={styles.btnIcon} /> Solicitar registro
+          <button type="submit" className={styles.primaryButton} disabled={loading}>
+            <img src="/usuario.png" alt="Registrar" className={styles.btnIcon} /> 
+            {loading ? "Registrando..." : "Solicitar registro"}
           </button>
         </form>
 

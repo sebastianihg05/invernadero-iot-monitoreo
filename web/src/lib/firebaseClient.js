@@ -11,9 +11,7 @@ const firebaseConfig = {
   appId: "1:133026261232:web:599a2e6eecd80fa522ba35"
 };
 
-// Evita inicializar la aplicación múltiples veces en el App Router de Next.js
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Exporta las instancias para usarlas en tus formularios
 export const auth = getAuth(app);
 export const db = getFirestore(app);
