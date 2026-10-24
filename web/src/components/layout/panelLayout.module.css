@@ -1,0 +1,158 @@
+/* Navegación estable: barra fija en PC, drawer móvil con checkbox nativo. */
+.shell {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 100dvh;
+  background: #07171d;
+  color: #ebf5f4;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  position: relative;
+}
+.shell * {box-sizing: border-box;}
+.sidebar {
+  flex: 0 0 264px;
+  width: 264px;
+  min-width: 0;
+  min-height: 100dvh;
+  background: linear-gradient(180deg, #0a1c25 0%, #091a21 56%, #08231e 100%);
+  border-right: 1px solid #ffffff16;
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 29px 20px 21px;
+  min-height: 91px;
+  color: #57e99b;
+  position: relative;
+}
+.brand svg {flex-shrink: 0;}
+.brand strong {display: block; color: #eff8f5; font-size: 20px; font-weight: 750; line-height: 1.2; white-space: nowrap; letter-spacing: -.6px;}
+.brand small {display: block; font-size: 11px; color: #8eaab2; margin-top: 5px; white-space: nowrap;}
+.roleLabel {font-size: 10px; font-weight: 750; color: #66af9c; letter-spacing: 1.5px; padding: 12px 22px 7px; margin: 0;}
+.nav {display: flex; flex-direction: column; gap: 4px; padding: 7px 9px 20px;}
+.navLink {display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 11px 17px; border-radius: 11px; color: #b4c7cc; text-decoration: none; font-size: 14px; transition: background .16s, color .16s;}
+.navLink svg {flex: 0 0 auto;}
+.navLink:hover {background: #174238ad; color: #8af4b9;}
+.navActive, .navActive:hover {color: #72f5a8; background: linear-gradient(90deg,#135a42,#104335); font-weight: 700;}
+.navCount {margin-left: auto; border-radius: 7px; background: #9c322f; color: #ffebeb; padding: 2px 7px; font-size: 10px; font-weight: 800;}
+.sidebarFoot {display: flex; gap: 11px; align-items: center; margin: auto 13px 20px; padding: 14px 12px; border: 1px solid #2b554860; border-radius: 10px; background: #14302caa; color: #73e5a6; font-size: 12px;}
+.sidebarFoot strong {display: block; font-size: 11px;}
+.sidebarFoot small {display: block; font-size: 10px; color: #87a9a7; margin-top: 3px;}
+.content {flex: 1 1 0; min-width: 0; position: relative; background: radial-gradient(ellipse at 45% -60px,#0e382932,transparent 50%),linear-gradient(125deg,#06151a,#07171d 65%,#071a20);}
+.content::before {content:""; position:absolute; inset: 0 0 auto; height: 170px; background:linear-gradient(180deg,#0a2e261f,transparent); pointer-events: none;}
+.header {position:relative; display:flex; flex-wrap:wrap; align-items:center; gap:15px; padding: 25px 24px 18px; z-index: 20; min-height:107px;}
+/* Al abrir notificaciones, elevar el encabezado por encima incluso de la barra lateral. */
+.header:has(.notificationToggle:checked) {z-index:130;}
+.menuButton {display: none; place-items: center; width:42px; height:42px; flex:0 0 42px; color:#dcfff0; background: #144238; border: 1px solid #39735f; border-radius:10px; cursor:pointer; position:relative; z-index:2;}
+.menuButton:hover {background:#1d5a49; color:#ffffff;}
+.mobileToggle:focus-visible ~ .content .menuButton, .mobileClose:focus-visible, .navLink:focus-visible {outline: 2px solid #67e8a5; outline-offset: 3px;}
+.heading {min-width:0; flex: 0 1 auto;}
+.heading h1 {font-size:clamp(22px,2.3vw,32px); line-height:1.15; font-weight:760; letter-spacing:-.8px; margin: 0 0 7px; color:#f3fafb;}
+.heading p {font-size: 13px; color:#b6cbd0; margin:0;}
+.status {display:inline-flex; gap:9px; align-items:center; font-size:11px; font-weight:700; padding:9px 11px; border-radius:10px; white-space:nowrap;}
+.statusConnected {color:#a5f3bc; background:#10432f; border:1px solid #247c5855;}
+.statusUnknown {color:#b2c1c4; background:#233b4088; border:1px solid #58707445;}
+.statusDot {width:8px; height:8px; border-radius:50%; background: currentColor; flex:0 0 auto;}
+.headerActions {display:flex; gap:15px; align-items:center; margin-left:auto; position:relative;}
+.bellButton {display:grid; place-items:center; position:relative; z-index:3; width:40px; height:40px; background:#24414a88; color:#d9eff0; border-radius:50%; cursor:pointer; list-style:none; border:0; user-select:none;}
+.bellButton:hover {color:#81e4b3; background:#2b5756;}
+.bellButton::-webkit-details-marker {display:none;}
+.notificationCenter {position:relative;}
+/* La campana comparte el mecanismo nativo de checkbox usado por la barra lateral. */
+.notificationToggle {position:absolute;width:1px;height:1px;margin:0;padding:0;opacity:0;pointer-events:none;}
+.notificationToggle:focus-visible + .bellButton {outline:2px solid #70ecc0;outline-offset:3px;}
+.notificationToggle:checked + .bellButton {background:#175a47; color:#8cf3b7;}
+.notificationBackdrop {display:none;position:fixed;inset:0;z-index:2;cursor:pointer;background:transparent;}
+.notificationToggle:checked ~ .notificationBackdrop {display:block;}
+.notificationToggle:checked ~ .notificationPanel {display:block;}
+.notificationPanel {display:none;position:absolute; z-index:4; top:calc(100% + 12px); right:0; width:min(375px,90vw); max-height:min(510px,75vh); overflow-y:auto; border:1px solid #2e5756; border-radius:14px; box-shadow:0 18px 44px #000b; background:#0c232b; color:#e9f5f3;}
+.notificationHeading {display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 17px 13px; border-bottom:1px solid #2c4950;}
+.notificationHeadingText {min-width:0;}
+.notificationClose {flex:0 0 29px;width:29px;height:29px;display:grid;place-items:center;border:1px solid #416363;border-radius:8px;cursor:pointer;color:#c5e2e0;background:#14333a;}
+.notificationClose:hover {background:#1c4b4a;color:white;}
+.notificationClose:focus-visible {outline:2px solid #70ecc0;outline-offset:2px;}
+.notificationHeading strong {display:block;font-size:15px;}
+.notificationHeading span {display:block;margin-top:3px;color:#a4bdc1;font-size:11px;}
+.notificationList {display:flex;flex-direction:column;}
+.notificationItem {display:flex;gap:11px;padding:12px 15px;color:#ddeeed;text-decoration:none;border-bottom:1px solid #213d44;}
+.notificationItem:hover {background:#16413e;color:#eefcf5;}
+.notificationBullet {flex:0 0 9px;height:9px;border-radius:50%;margin-top:5px;}
+.notificationAlert {background:#f37a64;}
+.notificationInvalid {background:#f8c25c;}
+.notificationInfo {min-width:0;display:flex;flex-direction:column;gap:4px;font-size:12px;}
+.notificationInfo strong {font-size:13px;color:#f0faf9;}
+.notificationInfo span {overflow-wrap:anywhere;color:#c0d4d3;}
+.notificationInfo small {color:#88a9af;font-size:11px;}
+.notificationEmpty {margin:0;padding:24px 18px;text-align:center;color:#abc0c4;font-size:13px;}
+.notificationAll {display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;color:#64dcb6;font-weight:700;font-size:12px;text-decoration:none;}
+.notificationAll:hover {background:#163a3b;color:#9bffda;}
+.notificationCount {position:absolute; top:-5px; right:-3px; display:grid; place-items:center; width:18px; height:18px; border-radius:50%; background:#d44344; color:white; font-size:10px; font-weight:750;}
+.userPill {display:flex; gap:9px; align-items:center; color:#e9f3f2; font-size:12px; font-weight:700; white-space:nowrap;}
+.avatar {display:grid; place-items:center; height:36px; width:36px; border-radius:50%; background:#49636f; border:2px solid #718997; color:white;}
+.pageBody {position:relative; z-index:1; padding:0 20px 28px; min-width:0;}
+.mobileClose {display:none;}
+.backdrop {display:none;}
+.mobileToggle {position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;}
+/* Escritorio: el mismo checkbox del móvil, pero con estado invertido.
+   Inicialmente la barra es visible; al marcar, se retira del layout y
+   el contenido ocupa automáticamente el espacio liberado. */
+@media (min-width:771px) {
+  .menuButton {display:inline-grid;}
+  .mobileToggle:checked ~ .sidebar {display:none;}
+  .mobileToggle:checked ~ .content .menuButton {
+    background:#1b5649;
+    border-color:#54a580;
+    color:#f0fff5;
+  }
+}
+@media(max-width:1300px) and (min-width:771px) { .sidebar {flex-basis:226px;width:226px;} .brand {gap:8px;padding-left:15px;padding-right:10px;} .brand strong{font-size:17px;} .navLink{gap:10px;font-size:13px;} .header{padding-left:16px;padding-right:16px;} }
+@media(max-width:1050px) and (min-width:771px) { .sidebar {flex-basis:202px;width:202px;} .brand strong{font-size:15px;} .roleLabel{padding-left:16px;} }
+@media(max-width:770px) {
+  .sidebar {position:fixed; top:0; bottom:0; left:0; min-height:0; height:100dvh; width:min(282px,88vw); flex-basis:auto; z-index:110; overflow-y:auto; box-shadow:10px 0 40px #0009; visibility:hidden; pointer-events:none; transform:translateX(-103%);transition:transform .19s ease, visibility .19s ease;}
+  .mobileToggle:checked ~ .sidebar {visibility:visible; pointer-events:auto; transform:translateX(0);}
+  .backdrop {display:none; position:fixed; inset:0; z-index:100; background:#000b; cursor:pointer;}
+  .mobileToggle:checked ~ .backdrop {display:block;}
+  .menuButton {display:inline-grid;place-items:center;cursor:pointer;}
+  .mobileClose {display:grid;place-items:center; position:absolute;right:9px;top:20px;width:36px;height:36px;border:1px solid #35634f;background:#174338;color:#e6fff2;border-radius:9px;cursor:pointer;z-index:6;}
+  .mobileToggle:focus-visible ~ .content .menuButton {outline:2px solid #67e8a5;outline-offset:3px;}
+  .brand {padding-right:48px;}
+  /* Dos filas predecibles. Nunca desplazar notificaciones o perfil al azar. */
+  .header {
+    display:grid;
+    grid-template-columns:42px minmax(0,1fr) auto;
+    grid-template-areas:"menu heading heading" "status status actions";
+    align-items:center;
+    column-gap:10px;
+    row-gap:12px;
+    padding:17px 12px 15px;
+    min-height:0;
+  }
+  .menuButton {grid-area:menu;}
+  .heading {grid-area:heading;min-width:0;}
+  .heading h1 {font-size:clamp(19px,5vw,25px);overflow-wrap:break-word;}
+  .heading p {font-size:12px;}
+  .status {grid-area:status;justify-self:start;max-width:100%;font-size:10px;padding:7px 9px;min-width:0;}
+  .headerActions {grid-area:actions;justify-self:end;display:flex;gap:9px;margin-left:0;position:relative;min-width:0;}
+  /* En móvil, el desplegable se posiciona respecto de toda la zona de acciones.
+     Su borde superior siempre queda DEBAJO de la campana, incluso si el título ocupa 3 líneas. */
+  .notificationCenter {position:static;}
+  .notificationPanel {position:absolute;top:calc(100% + 12px);right:0;left:auto;width:min(375px,calc(100vw - 24px));max-height:min(510px,calc(100dvh - 170px));}
+  .pageBody {padding:0 12px 20px;}
+}
+@media(max-width:560px) {
+  /* Conservar el avatar y liberar sitio para campana y estado. */
+  .userPill > span:last-child {display:none;}
+  .headerActions {gap:8px;}
+}
+@media(max-width:360px) {
+  .header {padding-left:10px;padding-right:10px;column-gap:8px;}
+  .heading h1 {font-size:18px;}
+  .status {font-size:9px;padding:7px 8px;}
+  .avatar {width:33px;height:33px;}
+  .bellButton {width:36px;height:36px;}
+}
