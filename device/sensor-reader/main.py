@@ -6,7 +6,7 @@ import signal
 import logging
 import threading
 from datetime import datetime, timezone
-
+from pathlib import Path
 import paho.mqtt.client as mqtt
 
 # ==========================================
@@ -117,7 +117,7 @@ def leer_sensor(sensor):
         raise RuntimeError("Lectura incompleta del sensor")
 
     return temperatura, humedad
-      
+    
 
 
 # ==========================================
@@ -210,6 +210,8 @@ logger.info("Intervalo de lectura: %s segundos", INTERVALO)
 
 try:
     while not detener.is_set():
+
+        Path("/tmp/latido").touch()
 
         inicio = time.monotonic()
 

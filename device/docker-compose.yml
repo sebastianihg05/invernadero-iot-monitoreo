@@ -22,7 +22,6 @@ services:
 
     devices:
       - "/dev/gpiomem:/dev/gpiomem"
-    privileged: true
 
   data-processor:
     build: ./data-processor
@@ -32,6 +31,8 @@ services:
     restart: unless-stopped
     environment:
       - MQTT_HOST=broker
+    devices:
+      - "/dev/gpiomem:/dev/gpiomem"
 
   uploader:
     build: ./uploader
