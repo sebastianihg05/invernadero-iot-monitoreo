@@ -431,3 +431,70 @@
 .readonlyFieldLabel {display:flex;align-items:center;gap:8px;color:#d7e8ea;font-size:13px;font-weight:600;}
 .readonlyField strong {font-size:22px;color:#ecf8f4;}
 .readonlyField small {color:#8ca9b2;font-size:11px;}
+
+/* Tabla de gestión de usuarios */
+.tableContainer {
+  background-color: #0c1f1a;
+  border: 1px solid #1a3c34;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  width: 100%;
+}
+
+.usersTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.usersTable th {
+  background-color: #122c25;
+  color: #a0c2b5;
+  font-size: 13px;
+  text-transform: uppercase;
+  padding: 16px;
+  border-bottom: 1px solid #1a3c34;
+}
+
+.usersTable td {
+  padding: 16px;
+  color: #d9f1e8;
+  border-bottom: 1px solid #1a3c34;
+  font-size: 14px;
+}
+
+.usersTable tr:last-child td {
+  border-bottom: none;
+}
+
+.usersTable tr:hover {
+  background-color: #102721;
+}
+
+.roleBadge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: capitalize;
+}
+
+.roleAdmin {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.roleUser {
+  background-color: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.loadingState {
+  padding: 40px;
+  text-align: center;
+  color: #a0c2b5;
+  font-size: 16px;
+}
