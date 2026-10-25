@@ -26,7 +26,7 @@ export const adminPages: Record<string, { title: string; description: string }> 
   "/admin/configuracion": { title: "Configuración del invernadero", description: "Umbrales, frecuencia de medición y parámetros operativos" },
   "/admin/buzzer": { title: "Control del buzzer", description: "Estado y futura gestión del buzzer KY-006" },
   "/admin/usuarios": { title: "Usuarios del sistema", description: "Administración de usuarios (pendiente de implementación)" },
-  "/admin/historial": { title: "Historial del sistema", description: "Registro histórico de mediciones y eventos disponibles" },
+  "/admin/historial": { title: "Historial del sistema", description: "Gestión y visualización de cuentas registradas" },
 };
 export const consultaPages: Record<string, { title: string; description: string }> = {
   "/consulta": { title: "Panel de consulta del invernadero", description: "Monitoreo en tiempo real de las condiciones ambientales" },
