@@ -69,3 +69,92 @@ export async function POST(request) {
     );
   }
 }
+
+// GET /api/sensores?range=1h|24h|7d
+// Primer paso de integracion: lectura de resumenes REALES del DHT22.
+// IMPORTANTE: este GET solo se habilita expresamente en Next.js Desarrollo.
+// Falta integrar Firebase Auth y la autorizacion por organizacion antes de publicar lecturas.
+const PERIODOS_MS = { "1h": 60 * 60 * 1000, "24h": 24 * 60 * 60 * 1000, "7d": 7 * 24 * 60 * 60 * 1000 };
+const MAX_RESUMENES = 120; // Limite deliberado para controlar lecturas de Firestore en la primera prueba.
+
+function valorNumerico(valor) {
+  return typeof valor === "number" && Number.isFinite(valor) ? valor : null;
+}
+
+function enteroNoNegativo(valor) {
+  return Number.isSafeInteger(valor) && valor >= 0 ? valor : 0;
+}
+
+function convertirResumen(doc) {
+  const origen = doc.data();
+  const timestamp = origen.timestamp;
+  if (typeof timestamp !== "string" || !Number.isFinite(Date.parse(timestamp))) return null;
+
+  const conteos = origen.conteos && typeof origen.conteos === "object" ? origen.conteos : {};
+  return {
+    id: doc.id,
+    timestamp: new Date(timestamp).toISOString(),
+    estado: typeof origen.estado === "string" ? origen.estado : "sin_estado",
+    alertas: enteroNoNegativo(conteos.alertas),
+    invalidas: enteroNoNegativo(conteos.invalidas),
+    temperatura_c: valorNumerico(origen.temperatura_c?.promedio),
+    humedad_pct: valorNumerico(origen.humedad_pct?.promedio),
+    // El resumen actual no incluye el estado del KY-006: no se inventa.
+    buzzer_activo: typeof origen.buzzer_activo === "boolean" ? origen.buzzer_activo : null,
+  };
+}
+
+export async function GET(request) {
+  // No publicar una lectura abierta a Internet sin autenticacion/autorizacion.
+  // Este modo temporal sirve SOLO para realizar pruebas en el Replit de desarrollo.
+  if (process.env.NODE_ENV !== "development" || process.env.DEV_SENSOR_READS !== "true") {
+    return NextResponse.json(
+      { error: "Lectura no habilitada. Falta integrar la autenticacion de usuarios y permisos." },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const rango = new URL(request.url).searchParams.get("range") || "24h";
+  if (!Object.hasOwn(PERIODOS_MS, rango)) {
+    return NextResponse.json({ error: "Rango invalido. Usa 1h, 24h o 7d." }, { status: 400 });
+  }
+
+  const deviceId = process.env.SENSOR_DEVICE_ID || "invernadero-01";
+  const inicio = Date.now() - PERIODOS_MS[rango];
+
+  try {
+    const snapshot = await db()
+      .collection("dispositivos")
+      .doc(deviceId)
+      .collection("resumenes")
+      .orderBy("timestamp", "desc")
+      .limit(MAX_RESUMENES)
+      .get();
+
+    const summaries = snapshot.docs
+      .map(convertirResumen)
+      .filter((dato) => dato !== null && Date.parse(dato.timestamp) >= inicio)
+      .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+
+    // "eventos" no tiene una estructura confirmada en las capturas.
+    // No generamos alertas ficticias a partir de los conteos.
+    return NextResponse.json({
+      summaries,
+      alerts: [],
+      counts: { alertas: 0, invalidas: 0 },
+      meta: {
+        deviceId,
+        range: rango,
+        maxRegistros: MAX_RESUMENES,
+        limiteAlcanzado: snapshot.size === MAX_RESUMENES,
+        nota: "Primera integracion: solo los ultimos resumenes; alertas detalladas pendientes.",
+      },
+    }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
+  } catch (error) {
+    console.error("Error al consultar resumenes en Firestore:", error);
+    return NextResponse.json(
+      { error: "No fue posible consultar las mediciones de Firestore." },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+}
