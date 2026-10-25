@@ -9,6 +9,7 @@ export const adminLinks: NavItem[] = [
   { title: "Alertas", href: "/admin/alertas", icon: "bell" },
   { title: "Configuración", href: "/admin/configuracion", icon: "settings" },
   { title: "Buzzer", href: "/admin/buzzer", icon: "speaker" },
+  { title: "Dispositivos", href: "/admin/dispositivos", icon: "power" },
   { title: "Usuarios", href: "/admin/usuarios", icon: "users" },
   { title: "Historial", href: "/admin/historial", icon: "history" },
 ];
@@ -25,6 +26,7 @@ export const adminPages: Record<string, { title: string; description: string }> 
   "/admin/alertas": { title: "Alertas del invernadero", description: "Notificaciones y anomalías registradas en el invernadero" },
   "/admin/configuracion": { title: "Configuración del invernadero", description: "Umbrales, frecuencia de medición y parámetros operativos" },
   "/admin/buzzer": { title: "Control del buzzer", description: "Estado y futura gestión del buzzer KY-006" },
+  "/admin/dispositivos": { title: "Gestión de dispositivos", description: "Altas, tokens por dispositivo, revocación y configuración remota" },
   "/admin/usuarios": { title: "Usuarios del sistema", description: "Administración de usuarios (pendiente de implementación)" },
   "/admin/historial": { title: "Historial del sistema", description: "Gestión y visualización de cuentas registradas" },
 };
