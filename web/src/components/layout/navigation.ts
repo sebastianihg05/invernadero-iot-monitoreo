@@ -3,33 +3,34 @@ import type { IconName } from "@/components/ui/Icon";
 export type PanelRole = "consulta" | "admin";
 export type NavItem = { title: string; href: string; icon: IconName };
 
-export const adminLinks: NavItem[] = [
-  { title: "Inicio", href: "/admin", icon: "house" },
-  { title: "Sensores", href: "/admin/sensores", icon: "sensor" },
-  { title: "Alertas", href: "/admin/alertas", icon: "bell" },
-  { title: "Configuración", href: "/admin/configuracion", icon: "settings" },
-  { title: "Buzzer", href: "/admin/buzzer", icon: "speaker" },
-  { title: "Usuarios", href: "/admin/usuarios", icon: "users" },
-  { title: "Historial", href: "/admin/historial", icon: "history" },
-];
-
 export const consultaLinks: NavItem[] = [
-  { title: "Inicio", href: "/consulta", icon: "house" },
-  { title: "Historial", href: "/consulta/historial", icon: "chart" },
+  { title: "Inicio", href: "/consulta", icon: "home" },
+  { title: "Historial", href: "/consulta/historial", icon: "history" },
+  { title: "Reportes", href: "/consulta/reportes", icon: "document" },
   { title: "Alertas", href: "/consulta/alertas", icon: "bell" },
 ];
 
-export const adminPages: Record<string, { title: string; description: string }> = {
-  "/admin": { title: "Panel de administración del invernadero", description: "Monitoreo y control general de las condiciones ambientales" },
-  "/admin/sensores": { title: "Sensores del invernadero", description: "Estado del DHT22, la Raspberry Pi y los componentes conectados" },
-  "/admin/alertas": { title: "Alertas del invernadero", description: "Notificaciones y anomalías registradas en el invernadero" },
-  "/admin/configuracion": { title: "Configuración del invernadero", description: "Umbrales, frecuencia de medición y parámetros operativos" },
-  "/admin/buzzer": { title: "Control del buzzer", description: "Estado y futura gestión del buzzer KY-006" },
-  "/admin/usuarios": { title: "Usuarios del sistema", description: "Administración de usuarios (pendiente de implementación)" },
-  "/admin/historial": { title: "Historial del sistema", description: "Gestión y visualización de cuentas registradas" },
+export const adminLinks: NavItem[] = [
+  { title: "Métricas", href: "/admin", icon: "gauge" },
+  { title: "Sensores", href: "/admin/sensores", icon: "activity" },
+  { title: "Dispositivos", href: "/admin/dispositivos", icon: "sliders" },
+  { title: "Alertas", href: "/admin/alertas", icon: "bell" },
+  { title: "Usuarios", href: "/admin/usuarios", icon: "users" },
+  { title: "Configuración", href: "/admin/configuracion", icon: "settings" },
+];
+
+export const consultaPages: Record<string, { title: string; subtitle: string }> = {
+  "/consulta": { title: "Monitoreo General", subtitle: "Vista operativa de variables ambientales" },
+  "/consulta/historial": { title: "Historial y Exportación", subtitle: "Consulta y descarga de registros históricos" },
+  "/consulta/reportes": { title: "Reportes Periódicos", subtitle: "Informes diarios, semanales y mensuales" },
+  "/consulta/alertas": { title: "Centro de Alertas", subtitle: "Historial y estado de alertas del sistema" },
 };
-export const consultaPages: Record<string, { title: string; description: string }> = {
-  "/consulta": { title: "Panel de consulta del invernadero", description: "Monitoreo en tiempo real de las condiciones ambientales" },
-  "/consulta/historial": { title: "Historial del invernadero", description: "Consulta el registro histórico de las condiciones ambientales" },
-  "/consulta/alertas": { title: "Alertas del invernadero", description: "Visualiza las notificaciones y anomalías detectadas en el sistema" },
+
+export const adminPages: Record<string, { title: string; subtitle: string }> = {
+  "/admin": { title: "Panel de Métricas", subtitle: "Estado general del sistema y servicios" },
+  "/admin/sensores": { title: "Gestión de Sensores", subtitle: "Calibración, rangos y estado de sensores" },
+  "/admin/dispositivos": { title: "Gestión de Dispositivos", subtitle: "Nodos Raspberry Pi, tokens y estado de conexión" },
+  "/admin/alertas": { title: "Reglas de Alertas", subtitle: "Configuración de umbrales y notificaciones" },
+  "/admin/usuarios": { title: "Control de Acceso", subtitle: "Gestión de usuarios y permisos" },
+  "/admin/configuracion": { title: "Configuración del Sistema", subtitle: "Parámetros globales y mantenimiento" },
 };
