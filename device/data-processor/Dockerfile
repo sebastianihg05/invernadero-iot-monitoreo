@@ -3,7 +3,14 @@ FROM python:3.9-slim
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# RPi.GPIO (buzzer) se compila en ARM: el compilador solo se instala durante el pip install
+# y se elimina despues, para que la imagen quede liviana.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libc6-dev \
+    && pip install --no-cache-dir -r requirements.txt \
+    && apt-get purge -y gcc libc6-dev \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 

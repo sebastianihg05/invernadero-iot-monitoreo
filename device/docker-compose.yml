@@ -4,8 +4,7 @@ services:
   broker:
     image: eclipse-mosquitto:2
     container_name: mqtt-broker
-    ports:
-      - "1883:1883"
+    # Sin "ports": el broker solo es accesible desde los otros contenedores (red interna de Docker).
     restart: unless-stopped
     volumes:
       - ./mqtt-broker/mosquitto.conf:/mosquitto/config/mosquitto.conf
