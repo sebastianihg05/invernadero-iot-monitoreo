@@ -1,10 +1,11 @@
 "use client";
 
+import { fetchConSesion } from "@/lib/sesionCliente";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { VACIO, parsearRespuesta, type Datos, type Periodo, type PeriodoAPI } from "./components/ConsultaWidgets";
 
 function useConsultaModel() {
-  const [periodo, setPeriodo] = useState<Periodo>("24h");
+  const [periodo, setPeriodo] = useState<Periodo>("1h");
   const [datos, setDatos] = useState<Datos>(VACIO);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +17,7 @@ function useConsultaModel() {
     if (signal.aborted) return;
     setCargando(true);
     try {
-      const respuesta = await fetch(`/api/sensores?range=${periodoAPI}`, {signal, cache: "no-store"});
+      const respuesta = await fetchConSesion(`/api/sensores?range=${periodoAPI}`, {signal, cache: "no-store"});
       if (!respuesta.ok) throw new Error(respuesta.status === 405
         ? "La API todavía no admite consultar mediciones (GET)."
         : `No se pudieron obtener los datos (HTTP ${respuesta.status}).`);
@@ -39,9 +40,10 @@ function useConsultaModel() {
   useEffect(() => {
     const controller = new AbortController();
     const inicio = window.setTimeout(() => void cargar(controller.signal), 0);
-    const timer = window.setInterval(() => void cargar(controller.signal), 60_000);
+    // Solo la vista de 1 hora se refresca sola (cada 5 min); 24 h y 7 dias se consultan al cambiar de rango o con el boton.
+    const timer = periodoAPI === "1h" ? window.setInterval(() => void cargar(controller.signal), 300_000) : null;
     return () => {window.clearTimeout(inicio);if(timer !== null) window.clearInterval(timer);controller.abort();};
-  }, [cargar, refrescar]);
+  }, [cargar, refrescar, periodoAPI]);
 
   const ultimo = datos.summaries[0];
   const edad = ultimo && actualizado ? actualizado.getTime() - Date.parse(ultimo.timestamp) : Number.POSITIVE_INFINITY;
