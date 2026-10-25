@@ -6,12 +6,12 @@ export type NavItem = { title: string; href: string; icon: IconName };
 export const consultaLinks: NavItem[] = [
   { title: "Inicio", href: "/consulta", icon: "home" },
   { title: "Historial", href: "/consulta/historial", icon: "history" },
-  { title: "Reportes", href: "/consulta/reportes", icon: "document" },
+  { title: "Reportes", href: "/consulta/reportes", icon: "chart" },
   { title: "Alertas", href: "/consulta/alertas", icon: "bell" },
 ];
 
 export const adminLinks: NavItem[] = [
-  { title: "Métricas", href: "/admin", icon: "gauge" },
+  { title: "Métricas", href: "/admin", icon: "chart" },
   { title: "Sensores", href: "/admin/sensores", icon: "activity" },
   { title: "Dispositivos", href: "/admin/dispositivos", icon: "sliders" },
   { title: "Alertas", href: "/admin/alertas", icon: "bell" },
