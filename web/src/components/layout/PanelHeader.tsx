@@ -66,7 +66,7 @@ export default function PanelHeader({ role, pathname, menuId, label, connected, 
       </label>
       <div className={styles.heading}>
         <h1>{meta?.title ?? "Invernadero IoT"}</h1>
-        <p>{meta?.description ?? "Monitoreo del invernadero"}</p>
+        <p>{meta?.subtitle ?? "Monitoreo del invernadero"}</p>
       </div>
       <span className={`${styles.status} ${connected ? styles.statusConnected : styles.statusUnknown}`}>
         <span className={styles.statusDot}/>{label}
