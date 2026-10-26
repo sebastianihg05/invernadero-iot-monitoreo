@@ -1,10 +1,11 @@
 "use client";
 
+import { fetchConSesion } from "@/lib/sesionCliente";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { esRespuestaAPI, numero, fechaISOChile, estadoConexion, estadoLectura, tituloAlerta, descargarCSV, type Periodo, type RespuestaAPI, type RegistroEvento } from "./components/AdminWidgets";
 
 function useAdminModel() {
-  const [periodo, setPeriodo] = useState<Periodo>("24h");
+  const [periodo, setPeriodo] = useState<Periodo>("1h");
   const [respuesta, setRespuesta] = useState<RespuestaAPI | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -22,7 +23,7 @@ function useAdminModel() {
 
   const consultar = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/sensores?range=${periodo}`, {cache: "no-store", signal});
+      const res = await fetchConSesion(`/api/sensores?range=${periodo}`, {cache: "no-store", signal});
       if (!res.ok) {
         if (res.status === 405) throw new Error("La API aún no implementa GET /api/sensores.");
         if (res.status === 401 || res.status === 403) throw new Error("La API necesita una sesión autorizada.");
@@ -49,9 +50,10 @@ function useAdminModel() {
     const controller = new AbortController();
     const actualizar = () => { void consultar(controller.signal); };
     actualizar();
-    const intervalo = window.setInterval(actualizar, 60_000);
-    return () => {controller.abort();window.clearInterval(intervalo);};
-  }, [consultar]);
+    // Solo la vista de 1 hora se refresca sola (cada 5 min); 24 h y 7 dias se consultan al cambiar de rango o recargar.
+    const intervalo = periodo === "1h" ? window.setInterval(actualizar, 300_000) : null;
+    return () => {controller.abort();if (intervalo !== null) window.clearInterval(intervalo);};
+  }, [consultar, periodo]);
 
   const lecturas = useMemo(() => [...(respuesta?.summaries ?? [])].sort((a,b) => Date.parse(b.timestamp)-Date.parse(a.timestamp)), [respuesta]);
   const alertas = useMemo(() => [...(respuesta?.alerts ?? [])].sort((a,b) => Date.parse(b.timestamp)-Date.parse(a.timestamp)), [respuesta]);

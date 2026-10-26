@@ -25,7 +25,7 @@ export default function AdminFrame({children}: {children: ReactNode}) {
     notifications={notificaciones}
     notificationStatus={cargando ? "loading" : error ? "unavailable" : "ready"}
   >
-    {pathname !== "/admin/usuarios" && error && <div className={styles.apiNotice} role="status"><Icon name="info" size={18}/><div><strong>Datos reales no disponibles.</strong> {error} No se muestran mediciones inventadas.</div><button type="button" className={styles.secondaryButton} disabled={cargando} onClick={() => {setCargando(true);void consultar();}}><Icon name="refresh" size={15}/>Reintentar</button></div>}
+    {pathname !== "/admin/usuarios" && pathname !== "/admin/dispositivos" && error && <div className={styles.apiNotice} role="status"><Icon name="info" size={18}/><div><strong>Datos reales no disponibles.</strong> {error} No se muestran mediciones inventadas.</div><button type="button" className={styles.secondaryButton} disabled={cargando} onClick={() => {setCargando(true);void consultar();}}><Icon name="refresh" size={15}/>Reintentar</button></div>}
     {children}
   </PanelShell>;
 }
