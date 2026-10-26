@@ -1,5 +1,4 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
 // Conexion a Firebase con la cuenta de servicio (clave privada).
@@ -33,6 +32,3 @@ export function db() {
   return getFirestore(obtenerApp());
 }
 
-export function auth() {
-  return getAuth(obtenerApp());
-}
