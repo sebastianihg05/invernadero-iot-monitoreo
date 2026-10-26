@@ -1,6 +1,22 @@
 import { NextResponse } from "next/server";
-import { auth, db } from "@/lib/firebaseAdmin";
+import { createRemoteJWKSet, jwtVerify } from "jose";
+import { db } from "@/lib/firebaseAdmin";
 import { tokenDeCabecera } from "@/lib/dispositivos";
+
+// Claves publicas con las que Google firma los tokens de sesion de Firebase.
+// Se verifica con jose y no con firebase-admin/auth, que en Vercel falla al cargar (ERR_REQUIRE_ESM).
+const clavesGoogle = createRemoteJWKSet(new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));
+
+async function uidDelToken(token) {
+  const proyecto = process.env.FIREBASE_PROJECT_ID;
+  const { payload } = await jwtVerify(token, clavesGoogle, {
+    issuer: "https://securetoken.google.com/" + proyecto,
+    audience: proyecto,
+    algorithms: ["RS256"],
+  });
+  if (!payload.sub) throw new Error("token sin uid");
+  return payload.sub;
+}
 
 export class ErrorSesion extends Error {
   constructor(estado, mensaje) {
@@ -17,7 +33,7 @@ export async function usuarioDeSesion(request, soloAdmin = false) {
 
   let uid;
   try {
-    uid = (await auth().verifyIdToken(token)).uid;
+    uid = await uidDelToken(token);
   } catch {
     throw new ErrorSesion(401, "La sesion no es valida.");
   }
