@@ -1,0 +1,54 @@
+rules_version = '2';
+
+// Reglas de Cloud Firestore de Invernadero IoT.
+//
+// Quien accede a Firestore directo desde el navegador es SOLO la coleccion "usuarios" (registro, lectura
+// del propio rol y listado para el admin). Todo lo demas (dispositivos, resumenes) lo lee y escribe la API
+// de Vercel con la cuenta de servicio (Admin SDK), que NO pasa por estas reglas. Por eso el cliente no
+// necesita ningun permiso sobre "dispositivos" y se le niega todo.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    // true si el usuario de la sesion tiene rol "admin" en usuarios/{uid}
+    function esAdmin() {
+      return autenticado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    match /usuarios/{uid} {
+      // Cada usuario lee su propio documento (para saber su rol); el admin puede leer cualquiera.
+      allow get: if autenticado() && (request.auth.uid == uid || esAdmin());
+
+      // Listar todos los usuarios (vista Usuarios del panel): solo admin.
+      allow list: if esAdmin();
+
+      // Registro: solo se puede crear el documento propio, con rol "estudiante" y exactamente estos campos.
+      // Asi nadie puede crearse como admin. El admin se asigna a mano desde la consola de Firebase.
+      allow create: if autenticado()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nombre', 'correo', 'rol', 'fechaRegistro'])
+        && request.resource.data.keys().hasAll(['nombre', 'correo', 'rol', 'fechaRegistro'])
+        && request.resource.data.rol == 'estudiante'
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.nombre.size() <= 100
+        && request.resource.data.correo is string
+        && request.resource.data.correo.lower() == request.auth.token.email.lower()
+        && request.resource.data.correo.lower().matches('.*@(unab\\.cl|uandresbello\\.edu)')
+        && request.resource.data.fechaRegistro == request.time;
+
+      // Nadie cambia ni borra usuarios desde el navegador (por eso un estudiante no puede subirse a admin).
+      allow update, delete: if false;
+    }
+
+    // Todo lo demas queda cerrado para el navegador.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
