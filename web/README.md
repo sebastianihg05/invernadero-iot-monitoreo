@@ -33,7 +33,7 @@ DEVICE_ID=invernadero-01
 
 `DEVICE_ID` debe coincidir con el identificador que usa el dispositivo. Reinicia el servidor después de crear o cambiar el archivo. No subas `.env.local` ni las credenciales a GitHub.
 
-La lectura del dashboard es pública y devuelve resúmenes de temperatura, humedad y estado del dispositivo, conteos agregados y hasta ocho alertas recientes con sus motivos para el período elegido. No publica el resto de los campos del evento. El `POST /api/sensores` que utiliza el dispositivo sigue protegido con `DEVICE_SECRET_TOKEN`.
+La lectura del dashboard es pública y devuelve resúmenes de temperatura, humedad y estado del dispositivo, conteos agregados y hasta ocho alertas recientes con sus motivos para el período elegido. No publica el resto de los campos del evento. El `POST /api/sensores` que utiliza el dispositivo exige el token de un dispositivo registrado y activo (se crea en el panel de admin).
 
 ## Learn More
 

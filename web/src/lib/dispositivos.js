@@ -15,11 +15,6 @@ export function nuevoToken(id) {
   return { token: id + "." + secreto, tokenHash: hash(secreto) };
 }
 
-// Token global antiguo (DEVICE_SECRET_TOKEN), solo mientras exista la variable
-export function tokenGlobalCoincide(token, esperado) {
-  return Boolean(token && esperado) && hash(token) === hash(esperado);
-}
-
 // Devuelve { deviceId } si el token es de un dispositivo activo, o { estado, error }
 export async function autenticarDispositivo(token) {
   const punto = token.indexOf(".");
