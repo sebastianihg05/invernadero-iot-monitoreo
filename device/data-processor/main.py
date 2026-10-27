@@ -39,15 +39,24 @@ melodia = [
     ('LA5', 0.35), ('FA#5', 0.35), ('SOL5', 1.0)
 ]
 
+# Estado que se cambia desde el panel (llega por MQTT en invernadero/configuracion)
+BUZZER_MODO = "auto"  # auto | silenciado | activado
+REGLAS_BUZZER = {"temperatura": True, "humedad": True, "sensor": True, "conectividad": True}
+ultima_prueba = None
+
 alarma_lock = threading.Lock()
 
-def reproducir_melodia():
+def reproducir_melodia(continuo=False):
     if not alarma_lock.acquire(blocking=False):
         return
     try:
         pwm.start(10)
         for nota, duracion in melodia:
-            if detener.is_set():
+            if (
+                detener.is_set()
+                or BUZZER_MODO == "silenciado"
+                or (continuo and BUZZER_MODO != "activado")
+            ):
                 break
             pwm.ChangeFrequency(NOTAS[nota])
             time.sleep(duracion)
@@ -64,6 +73,31 @@ def disparar_alarma_async():
     hilo = threading.Thread(target=reproducir_melodia, daemon=True)
     hilo.start()
 
+def mantener_alarma():
+    # Modo "activado": repite la melodia hasta que el panel cambie el modo
+    while BUZZER_MODO == "activado" and not detener.is_set():
+        reproducir_melodia(continuo=True)
+        detener.wait(1)
+
+def probar_buzzer():
+    # Pitido corto para comprobar el buzzer, suena aunque este silenciado
+    if not alarma_lock.acquire(blocking=False):
+        return
+    try:
+        pwm.start(10)
+        pwm.ChangeFrequency(NOTAS['LA5'])
+        time.sleep(0.6)
+    except Exception as error:
+        logger.error("Error en la prueba del buzzer: %s", error)
+    finally:
+        try:
+            pwm.stop()
+        except Exception:
+            pass
+        alarma_lock.release()
+
+def debe_sonar(regla):
+    return BUZZER_MODO != "silenciado" and REGLAS_BUZZER.get(regla, False)
 # ==========================================
 # CONFIGURACION
 # ==========================================
@@ -172,6 +206,10 @@ def registrar_invalida(datos, motivos):
         periodo["invalidas"] += 1
         periodo["eventos"].append(evento)
 
+        if debe_sonar("sensor"):
+            disparar_alarma_async()
+            periodo["buzzer_activo"] = True
+
     logger.warning("Lectura invalida: %s", motivos)
 
 
@@ -267,9 +305,13 @@ def procesar_lectura(datos):
         if motivos:
             periodo["alertas"] += 1
 
-            disparar_alarma_async()
-            periodo["buzzer_activo"] = True
-            
+            if (
+                any(m.startswith("Temperatura") for m in motivos) and debe_sonar("temperatura")
+                or any(m.startswith("Humedad") for m in motivos) and debe_sonar("humedad")
+            ):
+                disparar_alarma_async()
+                periodo["buzzer_activo"] = True
+
             periodo["eventos"].append({
                 "id_lectura": str(
                     datos.get("id_lectura") or uuid.uuid4()
@@ -324,15 +366,49 @@ def aplicar_configuracion(datos):
     if t_min >= t_max or h_min >= h_max:
         raise ValueError("El minimo debe ser menor que el maximo")
 
-    if (t_min, t_max, h_min, h_max) == (TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX):
+    if (t_min, t_max, h_min, h_max) != (TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX):
+        TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX = t_min, t_max, h_min, h_max
+
+        logger.info(
+            "Umbrales actualizados: temperatura %s-%s C, humedad %s-%s %%",
+            TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX
+        )
+
+    aplicar_buzzer(datos.get("buzzer"))
+
+
+def aplicar_buzzer(config):
+    # Modo, reglas y prueba del buzzer que el admin cambia desde el panel
+    global BUZZER_MODO, ultima_prueba
+
+    if not isinstance(config, dict):
         return
 
-    TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX = t_min, t_max, h_min, h_max
+    modo = config.get("modo")
 
-    logger.info(
-        "Umbrales actualizados: temperatura %s-%s C, humedad %s-%s %%",
-        TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX
-    )
+    if modo in ("auto", "silenciado", "activado") and modo != BUZZER_MODO:
+        BUZZER_MODO = modo
+        logger.info("Modo del buzzer: %s", modo)
+
+        if modo == "activado":
+            threading.Thread(target=mantener_alarma, daemon=True).start()
+
+    reglas = config.get("reglas")
+
+    if isinstance(reglas, dict):
+        for nombre in REGLAS_BUZZER:
+            if isinstance(reglas.get(nombre), bool):
+                REGLAS_BUZZER[nombre] = reglas[nombre]
+
+    prueba = config.get("prueba")
+
+    if isinstance(prueba, int) and not isinstance(prueba, bool):
+        # la primera vez solo se anota el valor: el mensaje retenido no debe sonar al reiniciar
+        if ultima_prueba is not None and prueba != ultima_prueba:
+            logger.info("Prueba del buzzer")
+            threading.Thread(target=probar_buzzer, daemon=True).start()
+
+        ultima_prueba = prueba
 
 
 def on_connect(
@@ -460,7 +536,8 @@ def crear_resumen(datos):
         "temperatura_c": resumen_temperatura,
         "humedad_pct": resumen_humedad,
         "vpd_kpa": resumen_vpd,
-        "buzzer_activo": datos["buzzer_activo"],
+        "buzzer_activo": datos["buzzer_activo"] or BUZZER_MODO == "activado",
+        "buzzer_pin": BUZZER_PIN,
         "eventos": datos["eventos"]
     }
 
@@ -545,6 +622,8 @@ def main():
         INTERVALO_RESUMEN
     )
 
+    minutos_sin_datos = 0
+
     try:
         while not detener.wait(INTERVALO_RESUMEN):
 
@@ -556,7 +635,15 @@ def main():
 
             if datos_periodo["total"] == 0:
                 logger.info("Periodo sin lecturas")
+                minutos_sin_datos += 1
+
+                if minutos_sin_datos == 2 and debe_sonar("conectividad"):
+                    logger.warning("Sin telemetria hace 2 minutos")
+                    disparar_alarma_async()
+
                 continue
+
+            minutos_sin_datos = 0
 
             resumen = crear_resumen(datos_periodo)
             publicar_resumen(cliente, resumen)

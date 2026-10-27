@@ -36,7 +36,7 @@ SQLITE_PATH = Path(
     )
 )
 
-INTERVALO_CONFIG = 60
+INTERVALO_CONFIG = 20
 TIMEOUT_HTTP = 10
 
 detener = threading.Event()

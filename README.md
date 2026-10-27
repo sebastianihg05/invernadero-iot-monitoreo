@@ -92,7 +92,7 @@ Para probar sin sensor conectado, poner `MODO_SIMULADO=true` en el servicio `sen
 | `API_URL` | URL de la API, termina en `/api/sensores` |
 | `DEVICE_TOKEN` | Token del dispositivo (`id.secreto`) |
 
-Los umbrales de alerta se cambian desde el panel de administración (Configuración). El `uploader` consulta `GET /api/configuracion` cada minuto y publica los valores en el tópico MQTT `invernadero/configuracion`, que el `data-processor` aplica sin reiniciar. Si nunca se guardaron, valen 18-30 °C y 40-80 % (variables `TEMP_MIN`, `TEMP_MAX`, `HUM_MIN` y `HUM_MAX`). Requiere `CONFIG_URL` en el `.env` de la Raspberry.
+Los umbrales de alerta se cambian desde el panel de administración (Configuración). El `uploader` consulta `GET /api/configuracion` cada 20 segundos y publica los valores en el tópico MQTT `invernadero/configuracion`, que el `data-processor` aplica sin reiniciar. Si nunca se guardaron, valen 18-30 °C y 40-80 % (variables `TEMP_MIN`, `TEMP_MAX`, `HUM_MIN` y `HUM_MAX`). Requiere `CONFIG_URL` en el `.env` de la Raspberry.
 
 ## API
 

@@ -82,6 +82,7 @@ export function procesarResumenes(documentos) {
             : null,
           buzzer_activo:
           typeof data.buzzer_activo === "boolean" ? data.buzzer_activo : null,
+          buzzer_pin: Number.isInteger(data.buzzer_pin) ? data.buzzer_pin : null,
       },
     ];
   });
