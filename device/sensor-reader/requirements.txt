@@ -2,3 +2,4 @@ paho-mqtt
 adafruit-blinka
 adafruit-circuitpython-dht
 RPi.GPIO
+gpiod>=2.2.2,<3
