@@ -52,6 +52,7 @@ services:
       # Se leen del archivo .env (junto a este docker-compose.yml). NUNCA se escriben aqui.
       - API_URL=${API_URL:-}
       - DEVICE_TOKEN=${DEVICE_TOKEN:-}
+      - CONFIG_URL=${CONFIG_URL:-}
       - SQLITE_PATH=/app/datos/sincronizacion.db
     volumes:
       # Buffer SQLite: sobrevive a reinicios y a "docker compose up --build"
