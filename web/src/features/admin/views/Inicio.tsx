@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "../admin.module.css";
+import { formatoVpd } from "@/lib/vpd";
 import Link from "next/link";
 import SensorMetricCard from "@/components/ui/SensorMetricCard";
 import { useAdminPanel } from "../AdminContext";
@@ -13,6 +14,7 @@ export default function Inicio() {
           <div className={styles.metricGrid}>
             <SensorMetricCard role="admin" kind="temperatura" title="Temperatura actual" value={numero(ultima?.temperatura_c,"°C")} detail={ultima?"Última lectura recibida":"Sin datos"}/>
             <SensorMetricCard role="admin" kind="humedad" title="Humedad actual" value={numero(ultima?.humedad_pct,"%")} detail={ultima?"Última lectura recibida":"Sin datos"}/>
+            <SensorMetricCard role="admin" kind="vpd" title="VPD ambiental" value={formatoVpd(ultima?.vpd_kpa)} detail={ultima?.vpd_kpa == null ? "Sin VPD reportado" : "Calculado con T° y humedad del aire"}/>
             <SensorMetricCard role="admin" kind="buzzer" title="Estado del buzzer" value={estadoBuzzer} detail="KY-006 · telemetría"/>
             <SensorMetricCard role="admin" kind="dispositivo" title="Estado del dispositivo" value={dispositivoTexto} detail={ultima?`Lectura: ${fecha(ultima.timestamp,true)}`:"Sin telemetría de conexión"} connected={conexion==="reciente"}/>
           </div>

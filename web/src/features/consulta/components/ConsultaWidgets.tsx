@@ -7,7 +7,7 @@ export type PeriodoAPI = Exclude<Periodo, "personalizado">;
 export type FiltroCondicion = "todos" | "normal" | "alerta" | "invalida";
 export type FiltroTipo = "todos" | "alerta" | "invalida";
 export type Origen = "todos" | "temperatura" | "humedad" | "otro";
-export type Orden = "timestamp" | "temperatura_c" | "humedad_pct" | "estado";
+export type Orden = "timestamp" | "temperatura_c" | "humedad_pct" | "vpd_kpa" | "estado";
 export type Resumen = {
   id: string;
   timestamp: string;
@@ -16,6 +16,7 @@ export type Resumen = {
   invalidas: number;
   temperatura_c: number | null;
   humedad_pct: number | null;
+  vpd_kpa?: number | null;
   buzzer_activo?: boolean | null;
 };
 export type Alerta = { id: string; timestamp: string; estado: "alerta" | "invalida"; motivos: string[] };
@@ -36,6 +37,7 @@ export function esResumen(v: unknown): v is Resumen {
   return typeof x.id === "string" && typeof x.timestamp === "string" && Number.isFinite(Date.parse(x.timestamp))
     && typeof x.estado === "string" && typeof x.alertas === "number" && typeof x.invalidas === "number"
     && n(x.temperatura_c) && n(x.humedad_pct)
+    && (x.vpd_kpa === undefined || n(x.vpd_kpa))
     && (x.buzzer_activo === undefined || x.buzzer_activo === null || typeof x.buzzer_activo === "boolean");
 }
 export function parsearRespuesta(v: unknown): Datos {

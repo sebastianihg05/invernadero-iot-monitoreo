@@ -1,6 +1,7 @@
 "use client";
 
 import { fetchConSesion } from "@/lib/sesionCliente";
+import { formatoVpd } from "@/lib/vpd";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { esRespuestaAPI, numero, fechaISOChile, estadoConexion, estadoLectura, tituloAlerta, descargarCSV, type Periodo, type RespuestaAPI, type RegistroEvento } from "./components/AdminWidgets";
 
@@ -69,7 +70,7 @@ function useAdminModel() {
   const mensajeVacio = cargando && !hayDatos ? "Consultando mediciones..." : error || "No hay datos en el período seleccionado.";
 
   const eventos = useMemo<RegistroEvento[]>(() => [
-    ...lecturas.map(l => ({id:`lectura-${l.id}`,timestamp:l.timestamp,tipo:"Medición" as const,origen:"DHT22",descripcion:`Temperatura ${numero(l.temperatura_c,"°C")} · Humedad ${numero(l.humedad_pct,"%")}`,estado:estadoLectura(l)})),
+    ...lecturas.map(l => ({id:`lectura-${l.id}`,timestamp:l.timestamp,tipo:"Medición" as const,origen:"DHT22",descripcion:`Temperatura ${numero(l.temperatura_c,"°C")} · Humedad ${numero(l.humedad_pct,"%")} · VPD ${formatoVpd(l.vpd_kpa)}`,estado:estadoLectura(l)})),
     ...alertas.map(a => ({id:`alerta-${a.id}`,timestamp:a.timestamp,tipo:(a.estado === "invalida" ? "Inválida" : "Alerta") as "Alerta" | "Inválida",origen:"Procesamiento",descripcion:a.motivos.join(" · ") || tituloAlerta(a),estado:a.estado === "invalida" ? "Inválida" : "Alerta"})),
   ].sort((a,b) => Date.parse(b.timestamp)-Date.parse(a.timestamp)), [lecturas,alertas]);
   const eventosFiltrados = eventos.filter(e => {
@@ -98,8 +99,8 @@ function useAdminModel() {
     ...eventosFiltrados.map(e => [new Date(e.timestamp).toLocaleString("es-CL",{timeZone:"America/Santiago"}),e.tipo,e.origen,e.descripcion,e.estado]),
   ],"historial-invernadero.csv");
   const exportarLecturas = () => descargarCSV([
-    ["Fecha y hora","Temperatura (°C)","Humedad (%)","Condición"],
-    ...lecturas.map(l => [new Date(l.timestamp).toLocaleString("es-CL",{timeZone:"America/Santiago"}),l.temperatura_c?.toString()??"",l.humedad_pct?.toString()??"",estadoLectura(l)]),
+    ["Fecha y hora","Temperatura (°C)","Humedad (%)","VPD (kPa)","Condición"],
+    ...lecturas.map(l => [new Date(l.timestamp).toLocaleString("es-CL",{timeZone:"America/Santiago"}),l.temperatura_c?.toString()??"",l.humedad_pct?.toString()??"",l.vpd_kpa?.toString()??"",estadoLectura(l)]),
   ],"mediciones-dht22.csv");
 
 

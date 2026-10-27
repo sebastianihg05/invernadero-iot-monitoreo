@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { formatoVpd } from "@/lib/vpd";
 import { Icon, type IconName } from "@/components/ui/Icon";
 export { Icon };
 export type { IconName };
@@ -18,6 +19,7 @@ export type Resumen = {
   invalidas: number;
   temperatura_c: number | null;
   humedad_pct: number | null;
+  vpd_kpa?: number | null;
   buzzer_activo?: boolean | null;
 };
 export type Alerta = { id: string; timestamp: string; estado: "alerta" | "invalida"; motivos: string[] };
@@ -33,6 +35,7 @@ function esResumen(valor: unknown): valor is Resumen {
     && Number.isFinite(Date.parse(r.timestamp)) && typeof r.estado === "string"
     && typeof r.alertas === "number" && typeof r.invalidas === "number"
     && esNumeroONulo(r.temperatura_c) && esNumeroONulo(r.humedad_pct)
+    && (r.vpd_kpa === undefined || esNumeroONulo(r.vpd_kpa))
     && (r.buzzer_activo === undefined || r.buzzer_activo === null || typeof r.buzzer_activo === "boolean");
 }
 export function esRespuestaAPI(valor: unknown): valor is RespuestaAPI {
@@ -148,9 +151,9 @@ export function TextoEstado({ estado }: { estado: EstadoLectura }) {
 
 export function TablaLecturas({ lecturas, vacio }: { lecturas: Resumen[]; vacio: string }) {
   return <div className={styles.tableScroll}><table className={styles.dataTable}>
-    <thead><tr><th>Fecha</th><th>Hora</th><th>Temperatura</th><th>Humedad</th><th>Estado</th></tr></thead>
-    <tbody>{lecturas.map(l => <tr key={l.id}><td>{fechaISOChile(l.timestamp)}</td><td>{fecha(l.timestamp)}</td><td>{numero(l.temperatura_c,"°C")}</td><td>{numero(l.humedad_pct,"%")}</td><td><TextoEstado estado={estadoLectura(l)}/></td></tr>)}
-    {!lecturas.length && <tr><td colSpan={5} className={styles.emptyTable}>{vacio}</td></tr>}</tbody>
+    <thead><tr><th>Fecha</th><th>Hora</th><th>Temperatura</th><th>Humedad</th><th>VPD (kPa)</th><th>Estado</th></tr></thead>
+    <tbody>{lecturas.map(l => <tr key={l.id}><td>{fechaISOChile(l.timestamp)}</td><td>{fecha(l.timestamp)}</td><td>{numero(l.temperatura_c,"°C")}</td><td>{numero(l.humedad_pct,"%")}</td><td>{formatoVpd(l.vpd_kpa)}</td><td><TextoEstado estado={estadoLectura(l)}/></td></tr>)}
+    {!lecturas.length && <tr><td colSpan={6} className={styles.emptyTable}>{vacio}</td></tr>}</tbody>
   </table></div>;
 }
 

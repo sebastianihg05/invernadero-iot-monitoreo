@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatoVpd } from "@/lib/vpd";
 import styles from "../consulta.module.css";
 import SensorMetricCard from "@/components/ui/SensorMetricCard";
 import { useConsultaPanel } from "../ConsultaContext";
@@ -23,9 +24,10 @@ export default function InicioConsulta() {
         {error && <div className={styles.errorStrip} role="alert"><Icon name="warning" size={17}/> {error} <button type="button" onClick={() => setRefrescar((n) => n + 1)}>Reintentar consulta</button></div>}
 
         <section className={`row g-3 ${styles.metricsRow}`} aria-label="Indicadores del invernadero">
-          <div className="col-12 col-md-4"><SensorMetricCard role="consulta" kind="temperatura" title="Temperatura actual" value={formatearNumero(ultimo?.temperatura_c,"°C")} detail={ultimo?(ultimo.estado==="alerta"?"Revisar alertas":"Última medición"):"Sin datos"}/></div>
-          <div className="col-12 col-md-4"><SensorMetricCard role="consulta" kind="humedad" title="Humedad actual" value={formatearNumero(ultimo?.humedad_pct,"%")} detail={ultimo?(ultimo.estado==="alerta"?"Revisar alertas":"Última medición"):"Sin datos"}/></div>
-          <div className="col-12 col-md-4"><SensorMetricCard role="consulta" kind="buzzer" title="Estado del buzzer" value={estadoBuzzer} detail={detalleBuzzer}/></div>
+          <div className="col-12 col-md-6 col-xl-3"><SensorMetricCard role="consulta" kind="temperatura" title="Temperatura actual" value={formatearNumero(ultimo?.temperatura_c,"°C")} detail={ultimo?(ultimo.estado==="alerta"?"Revisar alertas":"Última medición"):"Sin datos"}/></div>
+          <div className="col-12 col-md-6 col-xl-3"><SensorMetricCard role="consulta" kind="humedad" title="Humedad actual" value={formatearNumero(ultimo?.humedad_pct,"%")} detail={ultimo?(ultimo.estado==="alerta"?"Revisar alertas":"Última medición"):"Sin datos"}/></div>
+          <div className="col-12 col-md-6 col-xl-3"><SensorMetricCard role="consulta" kind="vpd" title="VPD ambiental" value={formatoVpd(ultimo?.vpd_kpa)} detail={ultimo?.vpd_kpa == null ? "Sin VPD reportado" : "Calculado con T° y humedad del aire"}/></div>
+          <div className="col-12 col-md-6 col-xl-3"><SensorMetricCard role="consulta" kind="buzzer" title="Estado del buzzer" value={estadoBuzzer} detail={detalleBuzzer}/></div>
         </section>
         <div className={`row g-3 ${styles.mainGrid}`}>
           <div className="col-12 col-xl-8 d-flex flex-column gap-3">
@@ -44,7 +46,7 @@ export default function InicioConsulta() {
 
             <section className={styles.panel} id="mediciones" aria-labelledby="mediciones-titulo">
               <div className={styles.panelHeader}><div className={styles.panelHeaderTitle}><Icon name="database" size={24}/><h2 id="mediciones-titulo">Últimas mediciones</h2></div><Link href="/consulta/historial" className={styles.textLink}>Ver historial <Icon name="chevron" size={15}/></Link></div>
-              <div className="table-responsive"><table className={styles.measurementsTable}><thead><tr><th>Hora</th><th>Temperatura (°C)</th><th>Humedad (%)</th><th>Estado del buzzer</th></tr></thead><tbody>{datos.summaries.slice(0, 5).map((r) => <tr key={r.id}><td>{formatearFecha(r.timestamp)}</td><td>{formatearNumero(r.temperatura_c, "")}</td><td>{formatearNumero(r.humedad_pct, "")}</td><td><span className={`${styles.tableState} ${r.buzzer_activo === true ? styles.tableAlert : r.buzzer_activo === false ? styles.tableNormal : styles.tableInvalid}`}><span/> {r.buzzer_activo === true ? "Activo" : r.buzzer_activo === false ? "Inactivo" : "No reportado"}</span></td></tr>)}{!datos.summaries.length && <tr><td colSpan={4} className={styles.emptyTable}>No hay mediciones para este período.</td></tr>}</tbody></table></div>
+              <div className="table-responsive"><table className={styles.measurementsTable}><thead><tr><th>Hora</th><th>Temperatura (°C)</th><th>Humedad (%)</th><th>VPD (kPa)</th><th>Estado del buzzer</th></tr></thead><tbody>{datos.summaries.slice(0, 5).map((r) => <tr key={r.id}><td>{formatearFecha(r.timestamp)}</td><td>{formatearNumero(r.temperatura_c, "")}</td><td>{formatearNumero(r.humedad_pct, "")}</td><td>{formatoVpd(r.vpd_kpa, false)}</td><td><span className={`${styles.tableState} ${r.buzzer_activo === true ? styles.tableAlert : r.buzzer_activo === false ? styles.tableNormal : styles.tableInvalid}`}><span/> {r.buzzer_activo === true ? "Activo" : r.buzzer_activo === false ? "Inactivo" : "No reportado"}</span></td></tr>)}{!datos.summaries.length && <tr><td colSpan={5} className={styles.emptyTable}>No hay mediciones para este período.</td></tr>}</tbody></table></div>
             </section>
           </div>
 

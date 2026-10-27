@@ -86,6 +86,11 @@ export async function GET(request) {
         data.humedad_pct && typeof data.humedad_pct === "object"
           ? data.humedad_pct.promedio
           : null;
+      // Resumen VPD añadido por data-processor. Documentos antiguos no lo incluyen.
+      const vpd =
+        data.vpd_kpa && typeof data.vpd_kpa === "object"
+          ? data.vpd_kpa.promedio
+          : null;
 
       if (
         typeof data.timestamp !== "string" ||
@@ -140,6 +145,10 @@ export async function GET(request) {
           humedad_pct:
             typeof humidity === "number" && Number.isFinite(humidity)
               ? humidity
+              : null,
+          vpd_kpa:
+            typeof vpd === "number" && Number.isFinite(vpd) && vpd >= 0
+              ? vpd
               : null,
         },
       ];

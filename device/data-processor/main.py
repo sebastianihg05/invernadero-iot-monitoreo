@@ -78,6 +78,7 @@ MQTT_TOPIC_SALIDA = "invernadero/procesados"
 
 INTERVALO_RESUMEN = 60
 DECIMALES = 1
+DECIMALES_VPD = 2  # kPa: se muestran dos decimales para conservar precision
 
 # Umbrales provisionales
 TEMP_MIN = float(os.getenv("TEMP_MIN", "18"))
@@ -109,6 +110,7 @@ def nuevo_periodo():
         "simuladas": 0,
         "temperaturas": [],
         "humedades": [],
+        "vpds": [],
         "eventos": []
     }
 
@@ -124,6 +126,22 @@ def valor_seguro(valor):
     if isinstance(valor, float) and not math.isfinite(valor):
         return str(valor)
     return valor
+
+
+# ==========================================
+# CALCULO DE VPD AMBIENTAL (kPa)
+# ==========================================
+
+def calcular_vpd(temperatura, humedad):
+    """VPD del aire; requiere una lectura ya validada del DHT22.
+
+    No usa temperatura foliar: no representa el VPD hoja-aire.
+    Se conserva la precision hasta generar el resumen del minuto.
+    """
+    presion_saturacion = 0.6108 * math.exp(
+        (17.27 * temperatura) / (temperatura + 237.3)
+    )
+    return presion_saturacion * (1 - humedad / 100)
 
 
 # ==========================================
@@ -211,6 +229,9 @@ def procesar_lectura(datos):
         )
         return
 
+    # VPD solo para lecturas validas; no altera umbrales ni buzzer.
+    vpd = calcular_vpd(temperatura, humedad)
+
     # ======================================
     # DETECCION DE ALERTAS
     # ======================================
@@ -236,6 +257,7 @@ def procesar_lectura(datos):
 
         periodo["temperaturas"].append(temperatura)
         periodo["humedades"].append(humedad)
+        periodo["vpds"].append(vpd)
 
         if datos.get("simulado") is True:
             periodo["simuladas"] += 1
@@ -267,9 +289,10 @@ def procesar_lectura(datos):
             periodo["normales"] += 1
 
     logger.info(
-        "Lectura procesada: %s C | %s %% | %s",
+        "Lectura procesada: %s C | %s %% | VPD: %.2f kPa | %s",
         round(temperatura, DECIMALES),
         round(humedad, DECIMALES),
+        vpd,
         "alerta" if motivos else "normal"
     )
 
@@ -324,6 +347,7 @@ def crear_resumen(datos):
 
     temperaturas = datos["temperaturas"]
     humedades = datos["humedades"]
+    vpds = datos["vpds"]
 
     if datos["alertas"] > 0:
         estado = "alerta"
@@ -372,6 +396,12 @@ def crear_resumen(datos):
             "maxima": None
         }
 
+    resumen_vpd = {
+        "promedio": round(sum(vpds) / len(vpds), DECIMALES_VPD) if vpds else None,
+        "minima": round(min(vpds), DECIMALES_VPD) if vpds else None,
+        "maxima": round(max(vpds), DECIMALES_VPD) if vpds else None
+    }
+
     return {
         "id_resumen": str(uuid.uuid4()),
         "tipo": "resumen_minuto",
@@ -390,6 +420,7 @@ def crear_resumen(datos):
 
         "temperatura_c": resumen_temperatura,
         "humedad_pct": resumen_humedad,
+        "vpd_kpa": resumen_vpd,
         "eventos": datos["eventos"]
     }
 
