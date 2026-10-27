@@ -21,6 +21,7 @@ export type Resumen = {
   humedad_pct: number | null;
   vpd_kpa?: number | null;
   buzzer_activo?: boolean | null;
+  buzzer_pin?: number | null;
 };
 export type Alerta = { id: string; timestamp: string; estado: "alerta" | "invalida"; motivos: string[] };
 export type RespuestaAPI = { summaries: Resumen[]; alerts: Alerta[]; counts: { alertas: number; invalidas: number } };
