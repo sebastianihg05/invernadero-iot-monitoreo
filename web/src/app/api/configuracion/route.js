@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { db } from "@/lib/firebaseAdmin";
 import { ErrorSesion, respuestaDeSesion, usuarioDeSesion } from "@/lib/sesion";
 import { autenticarDispositivo, tokenDeCabecera } from "@/lib/dispositivos";
+import { MODOS, REGLAS } from "@/lib/buzzer";
 
 // Umbrales de alerta. Si nunca se guardaron, son los mismos que trae el data-processor.
 const POR_DEFECTO = { temp_min: 18, temp_max: 30, hum_min: 40, hum_max: 80 };
@@ -20,6 +21,13 @@ function configuracionDe(deviceId, datos) {
     config[campo] = typeof guardada[campo] === "number" ? guardada[campo] : POR_DEFECTO[campo];
   }
   config.actualizado = guardada.actualizado ? guardada.actualizado.toDate().toISOString() : null;
+
+  const buzzer = guardada.buzzer || {};
+  config.buzzer = {
+    modo: MODOS.includes(buzzer.modo) ? buzzer.modo : "auto",
+    reglas: Object.fromEntries(REGLAS.map((regla) => [regla, buzzer.reglas?.[regla] !== false])),
+    prueba: typeof buzzer.prueba === "number" ? buzzer.prueba : 0,
+  };
   return config;
 }
 
