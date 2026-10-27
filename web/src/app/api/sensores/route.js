@@ -3,17 +3,16 @@ import { FieldValue } from "firebase-admin/firestore";
 import { db } from "@/lib/firebaseAdmin";
 import { autenticarDispositivo, tokenDeCabecera, tokenGlobalCoincide } from "@/lib/dispositivos";
 import { respuestaDeSesion, usuarioDeSesion } from "@/lib/sesion";
+import { estadoLecturas, registrarLecturas } from "@/lib/limiteLecturas";
+import { procesarResumenes } from "@/lib/procesarResumenes";
 
 // Control de lecturas de Firestore: cada documento leido cuenta como 1 lectura (cuota gratuita: 50.000 al dia).
 // 1) Cache en memoria por rango: repetir la consulta dentro de este tiempo NO vuelve a leer Firestore.
 //    En 1 hora es corta (1 min) para que el estado "datos recientes" del panel siga siendo fiel.
 const CACHE_MS = { "1h": 60 * 1000, "24h": 30 * 60 * 1000, "7d": 2 * 60 * 60 * 1000 };
 const cache = new Map();
-// 2) Tope diario de documentos leidos por este servicio: al llegar a el, se responde con el dato
-//    guardado en cache (aunque este vencido) y, si no hay, con error 429. Deja margen para otros usos.
-const MAX_DOCS_POR_DIA = 25000;
-let diaContado = "";
-let docsLeidosHoy = 0;
+// 2) Tope diario de documentos leidos (lib/limiteLecturas.js, compartido con /api/admin/historial): al llegar
+//    a el, se responde con el dato guardado en cache (aunque este vencido) y, si no hay, con error 429.
 
 // GET de lectura (requiere sesion): expone datos resumidos para el período solicitado.
 export async function GET(request) {
@@ -22,7 +21,7 @@ export async function GET(request) {
     await usuarioDeSesion(request);
 
     const url = new URL(request.url);
-    const range = url.searchParams.get("range") || "7d";
+    const range = url.searchParams.get("range") || "24h";
     if (!["1h", "24h", "7d"].includes(range)) {
       return NextResponse.json(
         { error: "El período debe ser 1h, 24h o 7d" },
@@ -42,18 +41,14 @@ export async function GET(request) {
     const deviceId = process.env.DEVICE_ID || "invernadero-01";
 
     // Cache y tope diario (ver arriba)
-    const hoy = new Date(now).toISOString().slice(0, 10);
-    if (hoy !== diaContado) {
-      diaContado = hoy;
-      docsLeidosHoy = 0;
-    }
+    const uso = estadoLecturas(now);
     const clave = deviceId + ":" + range;
     const guardada = cache.get(clave);
 
-    if (guardada && (guardada.hasta > now || docsLeidosHoy >= MAX_DOCS_POR_DIA)) {
+    if (guardada && (guardada.hasta > now || uso.restantes <= 0)) {
       return NextResponse.json(guardada.respuesta, { headers: { "Cache-Control": "no-store" } });
     }
-    if (docsLeidosHoy >= MAX_DOCS_POR_DIA) {
+    if (uso.restantes <= 0) {
       return NextResponse.json(
         { error: "Se alcanzo el limite diario de lecturas del panel. Vuelve a intentarlo manana." },
         { status: 429, headers: { "Cache-Control": "no-store" } },
@@ -69,99 +64,13 @@ export async function GET(request) {
       .orderBy("timestamp", "desc")
       .limit(limit)
       .get();
-    docsLeidosHoy += snapshot.size;
+    registrarLecturas(snapshot.size, now);
 
-    let alertCount = 0;
-    let invalidCount = 0;
-    const alerts = [];
-    const summaries = snapshot.docs.flatMap((document) => {
-      const data = document.data();
-      const counts =
-        data.conteos && typeof data.conteos === "object" ? data.conteos : {};
-      const temperature =
-        data.temperatura_c && typeof data.temperatura_c === "object"
-          ? data.temperatura_c.promedio
-          : null;
-      const humidity =
-        data.humedad_pct && typeof data.humedad_pct === "object"
-          ? data.humedad_pct.promedio
-          : null;
-      // Resumen VPD añadido por data-processor. Documentos antiguos no lo incluyen.
-      const vpd =
-        data.vpd_kpa && typeof data.vpd_kpa === "object"
-          ? data.vpd_kpa.promedio
-          : null;
-
-      if (
-        typeof data.timestamp !== "string" ||
-        !Number.isFinite(Date.parse(data.timestamp))
-      ) {
-        return [];
-      }
-
-      if (Number.isSafeInteger(counts.alertas) && counts.alertas > 0) {
-        alertCount += counts.alertas;
-      }
-      if (Number.isSafeInteger(counts.invalidas) && counts.invalidas > 0) {
-        invalidCount += counts.invalidas;
-      }
-
-      if (Array.isArray(data.eventos)) {
-        data.eventos.forEach((event, index) => {
-          if (
-            !event ||
-            typeof event !== "object" ||
-            !["alerta", "invalida"].includes(event.estado) ||
-            typeof event.timestamp !== "string" ||
-            !Number.isFinite(Date.parse(event.timestamp))
-          ) {
-            return;
-          }
-
-          const reasons = Array.isArray(event.motivos)
-            ? event.motivos.filter((reason) => typeof reason === "string").slice(0, 5)
-            : [];
-
-          alerts.push({
-            id: `${document.id}-${index}`,
-            timestamp: event.timestamp,
-            estado: event.estado,
-            motivos: reasons,
-          });
-        });
-      }
-
-      return [
-        {
-          id: document.id,
-          timestamp: data.timestamp,
-          estado: typeof data.estado === "string" ? data.estado : "desconocido",
-          alertas: Number.isSafeInteger(counts.alertas) ? counts.alertas : 0,
-          invalidas: Number.isSafeInteger(counts.invalidas) ? counts.invalidas : 0,
-          temperatura_c:
-            typeof temperature === "number" && Number.isFinite(temperature)
-              ? temperature
-              : null,
-          humedad_pct:
-            typeof humidity === "number" && Number.isFinite(humidity)
-              ? humidity
-              : null,
-          vpd_kpa:
-            typeof vpd === "number" && Number.isFinite(vpd) && vpd >= 0
-              ? vpd
-              : null,
-        },
-      ];
-    });
-
-    alerts.sort(
-      (first, second) => Date.parse(second.timestamp) - Date.parse(first.timestamp),
-    );
-
+    const { summaries, alerts, counts } = procesarResumenes(snapshot.docs);
     const respuesta = {
       range,
       summaries,
-      counts: { alertas: alertCount, invalidas: invalidCount },
+      counts,
       alerts: alerts.slice(0, 8),
     };
     cache.set(clave, { hasta: now + CACHE_MS[range], respuesta });
