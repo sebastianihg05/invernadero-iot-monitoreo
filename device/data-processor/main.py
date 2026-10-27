@@ -111,7 +111,8 @@ def nuevo_periodo():
         "temperaturas": [],
         "humedades": [],
         "vpds": [],
-        "eventos": []
+        "eventos": [],
+        "buzzer_activo": False
     }
 
 
@@ -266,7 +267,8 @@ def procesar_lectura(datos):
             periodo["alertas"] += 1
 
             disparar_alarma_async()
-
+            periodo["buzzer_activo"] = True
+            
             periodo["eventos"].append({
                 "id_lectura": str(
                     datos.get("id_lectura") or uuid.uuid4()
@@ -421,6 +423,7 @@ def crear_resumen(datos):
         "temperatura_c": resumen_temperatura,
         "humedad_pct": resumen_humedad,
         "vpd_kpa": resumen_vpd,
+        "buzzer_activo": datos["buzzer_activo"],
         "eventos": datos["eventos"]
     }
 
