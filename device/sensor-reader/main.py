@@ -6,7 +6,7 @@ import signal
 import logging
 import threading
 from datetime import datetime, timezone
-
+from pathlib import Path
 import paho.mqtt.client as mqtt
 
 # ==========================================
@@ -221,6 +221,8 @@ logger.info("Intervalo de lectura: %s segundos", INTERVALO)
 
 try:
     while not detener.is_set():
+
+        Path("/tmp/latido").touch()
 
         inicio = time.monotonic()
 

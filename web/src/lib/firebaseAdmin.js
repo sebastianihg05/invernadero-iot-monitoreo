@@ -31,3 +31,4 @@ function obtenerApp() {
 export function db() {
   return getFirestore(obtenerApp());
 }
+

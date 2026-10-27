@@ -7,8 +7,62 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
-
+import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
+from pathlib import Path
+
+# ==========================================
+# CONFIGURACION DEL BUZZER Y GPIO
+# ==========================================
+BUZZER_PIN = int(os.getenv("BUZZER_PIN", "17"))
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(BUZZER_PIN, GPIO.OUT)
+pwm = GPIO.PWM(BUZZER_PIN, 440)
+
+NOTAS = {
+    'DO5': 523.25, 'RE4': 293.66, 'MI4': 329.63, 'FA4': 349.23,
+    'SOL4': 392.00, 'LA4': 440.00, 'DO6': 1046.50, 'SI5': 987.77,
+    'LA5': 880, 'SOL5': 783.99, 'FA#5': 739.99, 'RE5': 587.33,
+    'FA5': 698.46, 'MI5': 659.25, 'RE#5': 622.25, 'SI4': 493.88
+}
+
+melodia = [
+    ('DO6', 1.0), ('DO6', 0.18), ('SI5', 0.18), ('LA5', 0.18),
+    ('SOL5', 0.18), ('FA#5', 0.35), ('RE5', 0.35), ('FA#5', 0.35),
+    ('DO6', 0.35), ('SI5', 0.35), ('SOL5', 0.35), ('FA#5', 1.0),
+    ('FA5', 1.0), ('MI5', 1.0), ('RE#5', 0.35), ('RE5', 0.35),
+    ('SI4', 0.35), ('DO5', 0.18), ('DO6', 0.18), ('DO5', 0.18),
+    ('DO6', 0.18), ('DO5', 0.18), ('DO6', 0.18), ('DO5', 0.35),
+    ('DO6', 0.18), ('SI5', 0.18), ('LA5', 0.18), ('SOL5', 0.18),
+    ('FA#5', 0.35), ('RE5', 0.35), ('FA#5', 0.35), ('SI5', 0.35),
+    ('LA5', 0.35), ('FA#5', 0.35), ('SOL5', 1.0)
+]
+
+alarma_lock = threading.Lock()
+
+def reproducir_melodia():
+    if not alarma_lock.acquire(blocking=False):
+        return
+    try:
+        pwm.start(10)
+        for nota, duracion in melodia:
+            if detener.is_set():
+                break
+            pwm.ChangeFrequency(NOTAS[nota])
+            time.sleep(duracion)
+    except Exception as error:
+        logger.error("Error al reproducir la melodía: %s", error)
+    finally:
+        try:
+            pwm.stop()
+        except Exception:
+            pass
+        alarma_lock.release()
+
+def disparar_alarma_async():
+    hilo = threading.Thread(target=reproducir_melodia, daemon=True)
+    hilo.start()
 
 # ==========================================
 # CONFIGURACION
@@ -24,6 +78,7 @@ MQTT_TOPIC_SALIDA = "invernadero/procesados"
 
 INTERVALO_RESUMEN = 60
 DECIMALES = 1
+DECIMALES_VPD = 2  # kPa: se muestran dos decimales para conservar precision
 
 # Umbrales provisionales
 TEMP_MIN = float(os.getenv("TEMP_MIN", "18"))
@@ -55,6 +110,7 @@ def nuevo_periodo():
         "simuladas": 0,
         "temperaturas": [],
         "humedades": [],
+        "vpds": [],
         "eventos": []
     }
 
@@ -70,6 +126,22 @@ def valor_seguro(valor):
     if isinstance(valor, float) and not math.isfinite(valor):
         return str(valor)
     return valor
+
+
+# ==========================================
+# CALCULO DE VPD AMBIENTAL (kPa)
+# ==========================================
+
+def calcular_vpd(temperatura, humedad):
+    """VPD del aire; requiere una lectura ya validada del DHT22.
+
+    No usa temperatura foliar: no representa el VPD hoja-aire.
+    Se conserva la precision hasta generar el resumen del minuto.
+    """
+    presion_saturacion = 0.6108 * math.exp(
+        (17.27 * temperatura) / (temperatura + 237.3)
+    )
+    return presion_saturacion * (1 - humedad / 100)
 
 
 # ==========================================
@@ -157,6 +229,9 @@ def procesar_lectura(datos):
         )
         return
 
+    # VPD solo para lecturas validas; no altera umbrales ni buzzer.
+    vpd = calcular_vpd(temperatura, humedad)
+
     # ======================================
     # DETECCION DE ALERTAS
     # ======================================
@@ -182,12 +257,15 @@ def procesar_lectura(datos):
 
         periodo["temperaturas"].append(temperatura)
         periodo["humedades"].append(humedad)
+        periodo["vpds"].append(vpd)
 
         if datos.get("simulado") is True:
             periodo["simuladas"] += 1
 
         if motivos:
             periodo["alertas"] += 1
+
+            disparar_alarma_async()
 
             periodo["eventos"].append({
                 "id_lectura": str(
@@ -211,9 +289,10 @@ def procesar_lectura(datos):
             periodo["normales"] += 1
 
     logger.info(
-        "Lectura procesada: %s C | %s %% | %s",
+        "Lectura procesada: %s C | %s %% | VPD: %.2f kPa | %s",
         round(temperatura, DECIMALES),
         round(humedad, DECIMALES),
+        vpd,
         "alerta" if motivos else "normal"
     )
 
@@ -268,6 +347,7 @@ def crear_resumen(datos):
 
     temperaturas = datos["temperaturas"]
     humedades = datos["humedades"]
+    vpds = datos["vpds"]
 
     if datos["alertas"] > 0:
         estado = "alerta"
@@ -316,6 +396,12 @@ def crear_resumen(datos):
             "maxima": None
         }
 
+    resumen_vpd = {
+        "promedio": round(sum(vpds) / len(vpds), DECIMALES_VPD) if vpds else None,
+        "minima": round(min(vpds), DECIMALES_VPD) if vpds else None,
+        "maxima": round(max(vpds), DECIMALES_VPD) if vpds else None
+    }
+
     return {
         "id_resumen": str(uuid.uuid4()),
         "tipo": "resumen_minuto",
@@ -334,6 +420,7 @@ def crear_resumen(datos):
 
         "temperatura_c": resumen_temperatura,
         "humedad_pct": resumen_humedad,
+        "vpd_kpa": resumen_vpd,
         "eventos": datos["eventos"]
     }
 
@@ -421,6 +508,8 @@ def main():
     try:
         while not detener.wait(INTERVALO_RESUMEN):
 
+            Path("/tmp/latido").touch()
+
             with bloqueo:
                 datos_periodo = periodo
                 periodo = nuevo_periodo()
@@ -435,6 +524,13 @@ def main():
     finally:
         cliente.disconnect()
         cliente.loop_stop()
+
+        try:
+            pwm.stop()
+            GPIO.cleanup()
+        except Exception:
+            pass
+
         logger.info("Microservicio finalizado")
 
 
