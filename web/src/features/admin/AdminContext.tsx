@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { esRespuestaAPI, numero, fechaISOChile, estadoConexion, estadoLectura, tituloAlerta, descargarCSV, type Periodo, type RespuestaAPI, type RegistroEvento } from "./components/AdminWidgets";
 
 function useAdminModel() {
-  const [periodo, setPeriodo] = useState<Periodo>("1h");
+  const [periodo, setPeriodo] = useState<Periodo>("24h");
   const [respuesta, setRespuesta] = useState<RespuestaAPI | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");

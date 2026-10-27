@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { VACIO, parsearRespuesta, type Datos, type Periodo, type PeriodoAPI } from "./components/ConsultaWidgets";
 
 function useConsultaModel() {
-  const [periodo, setPeriodo] = useState<Periodo>("1h");
+  const [periodo, setPeriodo] = useState<Periodo>("24h");
   const [datos, setDatos] = useState<Datos>(VACIO);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
