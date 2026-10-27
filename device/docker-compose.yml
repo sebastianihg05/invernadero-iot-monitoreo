@@ -18,9 +18,13 @@ services:
     environment:
       - MODO_SIMULADO=false
       - MQTT_HOST=broker
-
+      # Docker oculta /sys/firmware en contenedores sin privilegios y la libreria del sensor no logra
+      # identificar la placa; se le indica el modelo para no usar "privileged".
+      - BLINKA_FORCEBOARD=RASPBERRY_PI_4B
+      - BLINKA_FORCECHIP=BCM2XXX
     devices:
       - "/dev/gpiomem:/dev/gpiomem"
+      - "/dev/gpiochip0:/dev/gpiochip0"
 
   data-processor:
     build: ./data-processor
@@ -32,6 +36,10 @@ services:
       - MQTT_HOST=broker
     devices:
       - "/dev/gpiomem:/dev/gpiomem"
+    # RPi.GPIO (buzzer) necesita leer el modelo de la placa en /sys/firmware, que Docker oculta;
+    # esta opcion lo deja visible sin dar modo privilegiado.
+    security_opt:
+      - systempaths=unconfined
 
   uploader:
     build: ./uploader
