@@ -80,6 +80,8 @@ export function procesarResumenes(documentos) {
           typeof vpd === "number" && Number.isFinite(vpd) && vpd >= 0
             ? vpd
             : null,
+          buzzer_activo:
+          typeof data.buzzer_activo === "boolean" ? data.buzzer_activo : null,
       },
     ];
   });
