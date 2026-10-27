@@ -64,8 +64,8 @@ export default function useConsultaViews() {
 
   function descargarCSV() {
     if (!historico.length) return;
-    const cabeceras = ["Fecha y hora", "Temperatura (°C)", "Humedad (%)", "Buzzer", "Condición"];
-    const filas = historico.map((r) => [fecha(r.timestamp), r.temperatura_c == null ? "" : String(r.temperatura_c), r.humedad_pct == null ? "" : String(r.humedad_pct), r.buzzer_activo == null ? "No reportado" : r.buzzer_activo ? "Activo" : "Inactivo", condicion(r)]);
+    const cabeceras = ["Fecha y hora", "Temperatura (°C)", "Humedad (%)", "VPD (kPa)", "Buzzer", "Condición"];
+    const filas = historico.map((r) => [fecha(r.timestamp), r.temperatura_c == null ? "" : String(r.temperatura_c), r.humedad_pct == null ? "" : String(r.humedad_pct), r.vpd_kpa == null ? "" : String(r.vpd_kpa), r.buzzer_activo == null ? "No reportado" : r.buzzer_activo ? "Activo" : "Inactivo", condicion(r)]);
     const escapar = (v: string) => `"${(/^[\s]*[=+@-]/.test(v) ? "'" : "") + v.replace(/"/g, '""')}\"`;
     const csv = "\uFEFF" + [cabeceras, ...filas].map((r) => r.map(escapar).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));

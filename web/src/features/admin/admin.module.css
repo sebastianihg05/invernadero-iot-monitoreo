@@ -498,3 +498,8 @@
   color: #a0c2b5;
   font-size: 16px;
 }
+
+/* Indicador de VPD ambiental y distribución adaptable con cinco tarjetas. */
+.vpdCard {background:linear-gradient(120deg,#17362e,#102a2c);}
+.vpdIcon {background:linear-gradient(145deg,#187956a8,#194d4180);color:#94ffd2;border:1px solid #59dcab55;}
+.metricGrid {grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr));}
