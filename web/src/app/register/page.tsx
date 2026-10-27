@@ -21,7 +21,6 @@ export default function RegisterPage() {
     correo: '',
     password: '',
     confirmPassword: '',
-    aceptaTerminos: false
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,10 +44,6 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!formData.aceptaTerminos) {
-      alert("Debes aceptar los términos y condiciones");
-      return;
-    }
 
     setLoading(true);
 
@@ -188,10 +183,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 disabled={loading}
               />
-              <span className={styles.checkmark}></span>
-              <span>Acepto los <Link href="#" className={styles.link}>términos y condiciones</Link></span>
-            </label>
-          </div>
+
 
           <button type="submit" className={styles.primaryButton} disabled={loading}>
             <img src="/usuario.png" alt="Registrar" className={styles.btnIcon} /> 
