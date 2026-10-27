@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "@/lib/firebaseAdmin";
-import { autenticarDispositivo, tokenDeCabecera, tokenGlobalCoincide } from "@/lib/dispositivos";
+import { autenticarDispositivo, tokenDeCabecera } from "@/lib/dispositivos";
 import { respuestaDeSesion, usuarioDeSesion } from "@/lib/sesion";
 import { estadoLecturas, registrarLecturas } from "@/lib/limiteLecturas";
 import { procesarResumenes } from "@/lib/procesarResumenes";
@@ -88,17 +88,14 @@ export async function GET(request) {
 }
 
 // POST /api/sensores: recibe de la Raspberry un resumen por minuto y lo guarda en Firestore.
-// Authorization: Bearer <id>.<secreto>. Mientras exista DEVICE_SECRET_TOKEN tambien se acepta ese token.
+// Authorization: Bearer <id>.<secreto> (token de un dispositivo registrado y activo).
 export async function POST(request) {
   try {
     const token = tokenDeCabecera(request.headers.get("authorization"));
     const acceso = await autenticarDispositivo(token);
 
     if (!acceso.deviceId) {
-      if (acceso.estado === 403) return NextResponse.json({ error: acceso.error }, { status: 403 });
-      if (!tokenGlobalCoincide(token, process.env.DEVICE_SECRET_TOKEN)) {
-        return NextResponse.json({ error: "No autorizado: token de dispositivo invalido" }, { status: 401 });
-      }
+      return NextResponse.json({ error: acceso.error }, { status: acceso.estado });
     }
 
     const resumen = await request.json();
