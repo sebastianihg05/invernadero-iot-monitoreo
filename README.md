@@ -45,3 +45,11 @@ Solemne 1 - Infraestructura TI. Monitoreo de invernaderos y huertos con Raspberr
 cd device
 cp .env.example .env
 docker compose up -d --build
+```
+
+### Plataforma Web (Next.js)
+```bash
+cd web
+npm install
+npm run dev
+```
