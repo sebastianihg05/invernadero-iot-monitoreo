@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Invernadero IoT",
-  description: "Monitoreo ambiental del invernadero IoT",
+  title: "Invernadero | Monitoreo ambiental",
+  description: "Panel de monitoreo ambiental para tu invernadero.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
