@@ -111,7 +111,7 @@ def nuevo_periodo():
         "temperaturas": [],
         "humedades": [],
         "vpds": [],
-        "eventos": []
+        "eventos": [],
         "buzzer_activo": False
     }
 
