@@ -92,7 +92,7 @@ Para probar sin sensor conectado, poner `MODO_SIMULADO=true` en el servicio `sen
 | `API_URL` | URL de la API, termina en `/api/sensores` |
 | `DEVICE_TOKEN` | Token del dispositivo (`id.secreto`) |
 
-Los umbrales de alerta se pueden ajustar con las variables `TEMP_MIN`, `TEMP_MAX`, `HUM_MIN` y `HUM_MAX` del servicio `data-processor` (por defecto 18-30 °C y 40-80 %).
+Los umbrales de alerta se cambian desde el panel de administración (Configuración). El `uploader` consulta `GET /api/configuracion` cada minuto y publica los valores en el tópico MQTT `invernadero/configuracion`, que el `data-processor` aplica sin reiniciar. Si nunca se guardaron, valen 18-30 °C y 40-80 % (variables `TEMP_MIN`, `TEMP_MAX`, `HUM_MIN` y `HUM_MAX`). Requiere `CONFIG_URL` en el `.env` de la Raspberry.
 
 ## API
 
@@ -171,7 +171,7 @@ El panel respeta la cuota gratuita de Firestore (50.000 lecturas al día): usa c
 
 ## Limitaciones conocidas
 
-- **Configuración remota:** la pantalla de configuración existe pero es solo visual. Todavía no hay endpoint en la API ni servicio en la Raspberry que aplique cambios de umbrales a distancia; los umbrales se ajustan con variables de entorno del `data-processor`.
+- **Configuración remota:** solo se pueden cambiar los umbrales de temperatura y humedad. La frecuencia de medición sigue fijada en el dispositivo y el cambio llega a la Raspberry con hasta un minuto de retraso. Las alertas ya registradas no se recalculan.
 - **Organizaciones aisladas:** el sistema es de una sola organización. Los datos de distintos clientes no están separados.
 - **Control del buzzer:** el panel muestra si el buzzer sonó, pero los controles para activarlo o silenciarlo desde la web aún no están habilitados.
 

@@ -15,7 +15,7 @@ export function nuevoToken(id) {
   return { token: id + "." + secreto, tokenHash: hash(secreto) };
 }
 
-// Devuelve { deviceId } si el token es de un dispositivo activo, o { estado, error }
+// Devuelve { deviceId, datos } si el token es de un dispositivo activo, o { estado, error }
 export async function autenticarDispositivo(token) {
   const punto = token.indexOf(".");
   const deviceId = token.slice(0, punto);
@@ -27,5 +27,5 @@ export async function autenticarDispositivo(token) {
   if (!doc.exists || doc.data().tokenHash !== hash(secreto)) return { estado: 401, error: "Token invalido" };
   if (doc.data().activo === false) return { estado: 403, error: "Dispositivo revocado" };
 
-  return { deviceId };
+  return { deviceId, datos: doc.data() };
 }

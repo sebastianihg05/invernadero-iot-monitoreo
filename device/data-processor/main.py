@@ -75,6 +75,7 @@ MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 
 MQTT_TOPIC_ENTRADA = "invernadero/lecturas"
 MQTT_TOPIC_SALIDA = "invernadero/procesados"
+MQTT_TOPIC_CONFIG = "invernadero/configuracion"
 
 INTERVALO_RESUMEN = 60
 DECIMALES = 1
@@ -303,15 +304,48 @@ def procesar_lectura(datos):
 # RECEPCION MQTT
 # ==========================================
 
+def aplicar_configuracion(datos):
+    # Cambia los umbrales de alerta sin reiniciar el servicio
+    global TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX
+
+    try:
+        nuevos = [
+            float(datos[campo])
+            for campo in ("temp_min", "temp_max", "hum_min", "hum_max")
+        ]
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("Configuracion incompleta")
+
+    t_min, t_max, h_min, h_max = nuevos
+
+    if not all(math.isfinite(valor) for valor in nuevos):
+        raise ValueError("Umbrales no numericos")
+
+    if t_min >= t_max or h_min >= h_max:
+        raise ValueError("El minimo debe ser menor que el maximo")
+
+    if (t_min, t_max, h_min, h_max) == (TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX):
+        return
+
+    TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX = t_min, t_max, h_min, h_max
+
+    logger.info(
+        "Umbrales actualizados: temperatura %s-%s C, humedad %s-%s %%",
+        TEMP_MIN, TEMP_MAX, HUM_MIN, HUM_MAX
+    )
+
+
 def on_connect(
     cliente, userdata, flags, reason_code, properties
 ):
     if reason_code == 0:
         cliente.subscribe(MQTT_TOPIC_ENTRADA, qos=1)
+        cliente.subscribe(MQTT_TOPIC_CONFIG, qos=1)
 
         logger.info(
-            "Suscrito a %s",
-            MQTT_TOPIC_ENTRADA
+            "Suscrito a %s y %s",
+            MQTT_TOPIC_ENTRADA,
+            MQTT_TOPIC_CONFIG
         )
     else:
         logger.error(
@@ -329,7 +363,10 @@ def on_message(cliente, userdata, mensaje):
         if not isinstance(datos, dict):
             raise ValueError("Mensaje JSON invalido")
 
-        procesar_lectura(datos)
+        if mensaje.topic == MQTT_TOPIC_CONFIG:
+            aplicar_configuracion(datos)
+        else:
+            procesar_lectura(datos)
 
     except (
         UnicodeDecodeError,
