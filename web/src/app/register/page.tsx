@@ -174,17 +174,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className={styles.options}>
-            <label className={styles.checkbox}>
-              <input 
-                type="checkbox" 
-                name="aceptaTerminos"
-                checked={formData.aceptaTerminos}
-                onChange={handleChange}
-                disabled={loading}
-              />
-
-
           <button type="submit" className={styles.primaryButton} disabled={loading}>
             <img src="/usuario.png" alt="Registrar" className={styles.btnIcon} /> 
             {loading ? "Registrando..." : "Solicitar registro"}
