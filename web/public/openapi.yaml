@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: API Sistema IoT - Invernadero
+  description: Documentación oficial de los endpoints de la API REST desplegada en Vercel para la gestión del sistema IoT y plataforma web.
+  version: 1.0.0
+servers:
+  - url: https://invernadero-iot-monitoreo.vercel.app/api
+    description: Servidor de producción en Vercel
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: "Token propio del dispositivo IoT (ej. Authorization: Bearer 'id'.'secreto')"
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: __session
+      description: Sesión autenticada de Firebase para usuarios (Administradores y Consultas)
+
+paths:
+  /sensores:
+    get:
+      summary: Consultar resúmenes de sensores
+      description: Expone datos resumidos para el período solicitado (requiere sesión de usuario).
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: range
+          in: query
+          required: false
+          description: Período de tiempo a consultar
+          schema:
+            type: string
+            enum: [1h, 24h, 7d]
+            default: 24h
+      responses:
+        '200':
+          description: Datos obtenidos correctamente.
+        '400':
+          description: El período debe ser 1h, 24h o 7d.
+        '429':
+          description: Se alcanzó el límite diario de lecturas del panel.
+        '500':
+          description: Error interno del servidor.
+    post:
+      summary: Ingesta de telemetría del dispositivo
+      description: Recibe de la Raspberry Pi un resumen por minuto y lo guarda en Cloud Firestore.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id_resumen
+                - device_id
+                - timestamp
+                - tipo
+              properties:
+                id_resumen:
+                  type: string
+                device_id:
+                  type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                tipo:
+                  type: string
+                temperatura_c:
+                  type: object
+                humedad_pct:
+                  type: object
+                conteos:
+                  type: object
+      responses:
+        '200':
+          description: Resumen guardado exitosamente.
+        '400':
+          description: JSON incorrecto o campos inválidos/faltantes.
+        '403':
+          description: El token no corresponde al dispositivo.
+        '500':
+          description: Error interno del servidor.
+
+  /dispositivos:
+    get:
+      summary: Listar dispositivos
+      description: Devuelve la lista de dispositivos registrados, su estado y última conexión (solo administrador).
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Lista de dispositivos obtenida con éxito.
+        '500':
+          description: Error al consultar los dispositivos.
+    post:
+      summary: Registrar un nuevo dispositivo
+      description: Crea un nuevo dispositivo en Firestore y genera su token de acceso único (solo administrador).
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - nombre
+              properties:
+                id:
+                  type: string
+                nombre:
+                  type: string
+      responses:
+        '201':
+          description: Dispositivo registrado con éxito (retorna el token una sola vez).
+        '400':
+          description: Identificador o nombre inválido.
+        '409':
+          description: El identificador de dispositivo ya existe.
+
+  /dispositivos/{id}:
+    patch:
+      summary: Revocar o reactivar un dispositivo
+      description: Permite cambiar el estado activo/inactivo de un dispositivo específico (solo administrador).
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - accion
+              properties:
+                accion:
+                  type: string
+                  enum: [revocar, reactivar]
+      responses:
+        '200':
+          description: Dispositivo modificado exitosamente.
+        '400':
+          description: Acción no reconocida.
+        '404':
+          description: Dispositivo no encontrado.
+
+  /configuracion:
+    get:
+      summary: Leer configuración y umbrales
+      description: Obtenido por el panel web (con sesión) o por la Raspberry Pi (con su token).
+      security:
+        - SessionAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Configuración actual obtenida.
+        '500':
+          description: No se pudo leer la configuración.
+    put:
+      summary: Guardar umbrales de alerta
+      description: Actualiza los umbrales de temperatura y humedad en Firestore (solo administrador).
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                temp_min:
+                  type: number
+                temp_max:
+                  type: number
+                hum_min:
+                  type: number
+                hum_max:
+                  type: number
+      responses:
+        '200':
+          description: Configuración guardada con éxito.
+        '400':
+          description: Valores fuera de rango o inválidos.
+
+  /buzzer:
+    put:
+      summary: Enviar orden al actuador buzzer
+      description: Cambia el modo, activa/desactiva reglas o lanza una prueba de sonido (solo administrador).
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+                type: object
+      responses:
+        '200':
+          description: Orden enviada correctamente.
+        '400':
+          description: Orden inválida.
+
+  /admin/historial:
+    get:
+      summary: Consultar historial extendido de largo plazo
+      description: Permite consultar mediciones de entre 8 y 30 días optimizadas en filas compactas (solo administrador).
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 8
+            maximum: 30
+            default: 30
+      responses:
+        '200':
+          description: Historial extendido consultado con éxito.
+        '400':
+          description: El período debe estar entre 8 y 30 días.
+        '429':
+          description: La consulta excede las lecturas restantes del tope diario.
