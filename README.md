@@ -173,7 +173,7 @@ El panel respeta la cuota gratuita de Firestore (50.000 lecturas al día): usa c
 
 - **Configuración remota:** solo se pueden cambiar los umbrales de temperatura y humedad. La frecuencia de medición sigue fijada en el dispositivo y el cambio llega a la Raspberry con hasta un minuto de retraso. Las alertas ya registradas no se recalculan.
 - **Organizaciones aisladas:** el sistema es de una sola organización. Los datos de distintos clientes no están separados.
-- **Control del buzzer:** el panel muestra si el buzzer sonó, pero los controles para activarlo o silenciarlo desde la web aún no están habilitados.
+
 
 ## Integrantes
 
